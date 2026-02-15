@@ -223,6 +223,12 @@ jobs:
           COVERAGE=$(echo "$MEASURES_JSON" | jq -r '.component.measures // [] | map(select(.metric=="coverage")) | .[0].value // "0"')
           DUPLICATION=$(echo "$MEASURES_JSON" | jq -r '.component.measures // [] | map(select(.metric=="duplicated_lines_density")) | .[0].value // "0"')
 
+          if [ "$COVERAGE" = "0" ]; then
+            COVERAGE_DISPLAY="N/A (커버리지 제외 중)"
+          else
+            COVERAGE_DISPLAY="${COVERAGE}%"
+          fi
+
           # ------------------------------------------------------------------
           # Result formatting
           # ------------------------------------------------------------------
@@ -248,10 +254,10 @@ jobs:
           - 📎 Code Smells: ${SMELLS}
 
           ### Measures
-          - Coverage: ${COVERAGE}%
+          - Coverage: ${COVERAGE_DISPLAY}
           - Duplication: ${DUPLICATION}%
 
-          🔗 Dashboard: ${DASHBOARD_URL}&branch=${BRANCH}
+          🔗 Dashboard: ${DASHBOARD_URL}
 
           _Generated automatically by GitHub Actions._
           EOF
