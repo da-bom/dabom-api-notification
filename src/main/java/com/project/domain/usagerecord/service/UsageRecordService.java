@@ -1,5 +1,9 @@
 package com.project.domain.usagerecord.service;
 
+import java.time.LocalDateTime;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -25,6 +29,9 @@ public class UsageRecordService {
 
     private final FamilyMemberRepository familyMemberRepository;
 
+    private final AtomicReference<LocalDateTime> lastTotalBytesTime = new AtomicReference<>();
+    private final AtomicReference<LocalDateTime> lastTotalMemberBytes = new AtomicReference<>();
+
     public SseEmitter subscribeTotal(Long customerId) {
         Long familyId =
                 familyMemberRepository
@@ -45,7 +52,21 @@ public class UsageRecordService {
         return memberRegistry.register(familyId);
     }
 
-    public void pushTotalUsageBytes(UsageRealtimePayload payload) {
+    @Async
+    public void pushTotalUsageBytes(UsageRealtimePayload payload, LocalDateTime publishedDateTime) {
+
+        while (true) {
+            LocalDateTime current = lastTotalBytesTime.get();
+            if (publishedDateTime.isBefore(lastTotalBytesTime.get())) {
+                log.info("drop older total event");
+                return;
+            }
+
+            if (lastTotalBytesTime.compareAndSet(current, publishedDateTime)) {
+                break;
+            }
+        }
+
         RealtimeTotalUsageResponse response =
                 new RealtimeTotalUsageResponse(
                         payload.familyId(),
@@ -56,9 +77,23 @@ public class UsageRecordService {
         totalRegistry.send(payload.familyId(), "usage-updated", response);
     }
 
-    public void pushMemberUsageBytes(UsageRealtimePayload payload) {
+    @Async
+    public void pushMemberUsageBytes(
+            UsageRealtimePayload payload, LocalDateTime publishedDateTime) {
         Long familyId = payload.familyId();
         Long customerId = payload.customerId();
+
+        while (true) {
+            LocalDateTime current = lastTotalMemberBytes.get();
+            if (publishedDateTime.isBefore(lastTotalMemberBytes.get())) {
+                log.info("drop older total event");
+                return;
+            }
+
+            if (lastTotalMemberBytes.compareAndSet(current, publishedDateTime)) {
+                break;
+            }
+        }
 
         RealtimeUsageByMemberResponse response =
                 new RealtimeUsageByMemberResponse(

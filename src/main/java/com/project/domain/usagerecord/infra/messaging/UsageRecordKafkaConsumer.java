@@ -1,6 +1,7 @@
 package com.project.domain.usagerecord.infra.messaging;
 
 import java.time.LocalDateTime;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -38,7 +39,6 @@ public class UsageRecordKafkaConsumer {
 
             log.info(
                     "FamilyId:{}, totalUsedBytes:{}", payload.familyId(), payload.totalUsedBytes());
-
 
             usageRecordService.pushMemberUsageBytes(payload, publishTime);
             usageRecordService.pushTotalUsageBytes(payload, publishTime);
