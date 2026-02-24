@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.project.domain.usagerecord.service.UsageRecordService;
+import com.project.domain.usagerecord.infra.sse.SsePublisher;
 import com.project.global.event.dto.EventEnvelope;
 import com.project.global.event.dto.usage.UsageRealtimePayload;
 
@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UsageRecordKafkaConsumer {
 
     private final ObjectMapper objectMapper;
-    private final UsageRecordService usageRecordService;
+    private final SsePublisher ssePublisher;
 
     @KafkaListener(topics = "usage-realtime", groupId = "usage-service")
     public void consume(ConsumerRecord<String, String> record) {
@@ -38,8 +38,8 @@ public class UsageRecordKafkaConsumer {
             log.info(
                     "FamilyId:{}, totalUsedBytes:{}", payload.familyId(), payload.totalUsedBytes());
 
-            usageRecordService.pushMemberUsageBytes(payload, publishTime);
-            usageRecordService.pushTotalUsageBytes(payload, publishTime);
+            ssePublisher.pushMemberUsageBytes(payload, publishTime);
+            ssePublisher.pushTotalUsageBytes(payload, publishTime);
 
         } catch (JsonProcessingException e) {
             log.error("JSON 파싱 실패", e);

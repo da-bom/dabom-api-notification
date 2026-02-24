@@ -91,13 +91,7 @@ public class SsePublisher {
         }
 
         RealtimeUsageByMemberResponse response =
-                new RealtimeUsageByMemberResponse(
-                        familyId,
-                        customerId,
-                        payload.totalUsedBytes(),
-                        payload.totalLimitBytes(),
-                        payload.remainingBytes());
-
+                new RealtimeUsageByMemberResponse(familyId, customerId, payload.monthlyUsedBytes());
         emitterRegistry.send(familyId, "usage-updated-by-member", response);
     }
 
