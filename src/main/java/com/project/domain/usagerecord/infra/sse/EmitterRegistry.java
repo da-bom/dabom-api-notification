@@ -16,9 +16,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class EmitterRegistry {
     private final Map<Long, List<SseEmitter>> map = new ConcurrentHashMap<>();
+    private static final long EMITTER_TIMEOUT_MS = 60_000L;
 
     public SseEmitter register(Long familyId) {
-        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT_MS);
         int id = emitter.hashCode();
 
         map.computeIfAbsent(familyId, k -> new CopyOnWriteArrayList<>()).add(emitter);
