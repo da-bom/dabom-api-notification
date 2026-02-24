@@ -23,25 +23,34 @@ import lombok.extern.slf4j.Slf4j;
 public class SsePublisher {
 
     private final EmitterRegistry emitterRegistry;
-    private final AtomicReference<LocalDateTime> lastTotalBytesTime =
-            new AtomicReference<>(LocalDateTime.MIN);
-    private final AtomicReference<LocalDateTime> lastTotalMemberBytes =
-            new AtomicReference<>(LocalDateTime.MIN);
     private final FamilyCacheRepository familyCacheRepository;
+
+    private final ConcurrentHashMap<Long, AtomicReference<LocalDateTime>>
+            lastTotalBytesTimeByFamily = new ConcurrentHashMap<>();
+
+    private final ConcurrentHashMap<Long, AtomicReference<LocalDateTime>>
+            lastTotalMemberBytesTimeByFamily = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<Long, Long> lastSeen = new ConcurrentHashMap<>();
 
     @Async
     public void pushTotalUsageBytes(UsageRealtimePayload payload, LocalDateTime publishedDateTime) {
+        Long familyId = payload.familyId();
+        AtomicReference<LocalDateTime> lastRef = totalTsRef(familyId);
 
         while (true) {
-            LocalDateTime current = lastTotalBytesTime.get();
-            if (publishedDateTime.isBefore(lastTotalBytesTime.get())) {
-                log.info("drop older total event");
+            LocalDateTime current = lastRef.get();
+
+            if (!publishedDateTime.isAfter(current)) {
+                log.info(
+                        "drop older total event: familyId={}, incoming={}, last={}",
+                        familyId,
+                        publishedDateTime,
+                        current);
                 return;
             }
 
-            if (lastTotalBytesTime.compareAndSet(current, publishedDateTime)) {
+            if (lastRef.compareAndSet(current, publishedDateTime)) {
                 break;
             }
         }
@@ -53,7 +62,7 @@ public class SsePublisher {
                         payload.totalLimitBytes(),
                         payload.remainingBytes());
 
-        emitterRegistry.send(payload.familyId(), "usage-updated", response);
+        emitterRegistry.send(familyId, "usage-updated", response);
     }
 
     @Async
@@ -61,16 +70,22 @@ public class SsePublisher {
             UsageRealtimePayload payload, LocalDateTime publishedDateTime) {
         Long familyId = payload.familyId();
         Long customerId = payload.customerId();
+        AtomicReference<LocalDateTime> lastRef = memberTsRef(familyId);
 
         while (true) {
-            LocalDateTime current = lastTotalMemberBytes.get();
-            // 이벤트 순서 보장
-            if (publishedDateTime.isBefore(lastTotalMemberBytes.get())) {
-                log.info("drop older total event");
+            LocalDateTime current = lastRef.get();
+
+            if (!publishedDateTime.isAfter(current)) {
+                log.info(
+                        "drop older member event: familyId={}, customerId={}, incoming={}, last={}",
+                        familyId,
+                        customerId,
+                        publishedDateTime,
+                        current);
                 return;
             }
 
-            if (lastTotalMemberBytes.compareAndSet(current, publishedDateTime)) {
+            if (lastRef.compareAndSet(current, publishedDateTime)) {
                 break;
             }
         }
@@ -84,6 +99,16 @@ public class SsePublisher {
                         payload.remainingBytes());
 
         emitterRegistry.send(familyId, "usage-updated-by-member", response);
+    }
+
+    private AtomicReference<LocalDateTime> totalTsRef(Long familyId) {
+        return lastTotalBytesTimeByFamily.computeIfAbsent(
+                familyId, id -> new AtomicReference<>(LocalDateTime.MIN));
+    }
+
+    private AtomicReference<LocalDateTime> memberTsRef(Long familyId) {
+        return lastTotalMemberBytesTimeByFamily.computeIfAbsent(
+                familyId, id -> new AtomicReference<>(LocalDateTime.MIN));
     }
 
     @Scheduled(fixedDelay = 1000)
@@ -105,9 +130,10 @@ public class SsePublisher {
                 // 임시로 고정
                 long totalLimitBytes = 20000;
                 long totalUsedBytes = totalLimitBytes - remainingBytes;
+
                 UsageRealtimePayload payload =
                         new UsageRealtimePayload(
-                                1L,
+                                familyId,
                                 1L,
                                 totalUsedBytes,
                                 totalLimitBytes,
@@ -117,8 +143,9 @@ public class SsePublisher {
                                 null,
                                 null);
 
-                pushTotalUsageBytes(payload, LocalDateTime.now());
-                pushMemberUsageBytes(payload, LocalDateTime.now());
+                LocalDateTime now = LocalDateTime.now();
+                pushTotalUsageBytes(payload, now);
+                pushMemberUsageBytes(payload, now);
             }
         }
     }
