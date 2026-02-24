@@ -1,20 +1,18 @@
-package com.project.domain.usagerecord.service;
+package com.project.domain.usagerecord.infra.sse;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.project.domain.family.repository.FamilyMemberRepository;
+import com.project.domain.family.infra.cache.FamilyCacheRepository;
 import com.project.domain.usagerecord.dto.response.RealtimeTotalUsageResponse;
 import com.project.domain.usagerecord.dto.response.RealtimeUsageByMemberResponse;
-import com.project.domain.usagerecord.infra.sse.MemberUsageSseEmitterRegistry;
-import com.project.domain.usagerecord.infra.sse.TotalUsageSseEmitterRegistry;
 import com.project.global.event.dto.usage.UsageRealtimePayload;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.FamilyErrorCode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,37 +20,16 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UsageRecordService {
+public class SsePublisher {
 
-    private final TotalUsageSseEmitterRegistry totalRegistry;
-    private final MemberUsageSseEmitterRegistry memberRegistry;
-
-    private final FamilyMemberRepository familyMemberRepository;
-
+    private final EmitterRegistry emitterRegistry;
     private final AtomicReference<LocalDateTime> lastTotalBytesTime =
             new AtomicReference<>(LocalDateTime.MIN);
     private final AtomicReference<LocalDateTime> lastTotalMemberBytes =
             new AtomicReference<>(LocalDateTime.MIN);
+    private final FamilyCacheRepository familyCacheRepository;
 
-    public SseEmitter subscribeTotal(Long customerId) {
-        Long familyId =
-                familyMemberRepository
-                        .findFamilyIdByCustomerId(customerId)
-                        .orElseThrow(
-                                () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
-
-        return totalRegistry.register(familyId);
-    }
-
-    public SseEmitter subscribeByMember(Long customerId) {
-        Long familyId =
-                familyMemberRepository
-                        .findFamilyIdByCustomerId(customerId)
-                        .orElseThrow(
-                                () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
-
-        return memberRegistry.register(familyId);
-    }
+    private final ConcurrentHashMap<Long, Long> lastSeen = new ConcurrentHashMap<>();
 
     @Async
     public void pushTotalUsageBytes(UsageRealtimePayload payload, LocalDateTime publishedDateTime) {
@@ -76,7 +53,7 @@ public class UsageRecordService {
                         payload.totalLimitBytes(),
                         payload.remainingBytes());
 
-        totalRegistry.send(payload.familyId(), "usage-updated", response);
+        emitterRegistry.send(payload.familyId(), "usage-updated", response);
     }
 
     @Async
@@ -87,6 +64,7 @@ public class UsageRecordService {
 
         while (true) {
             LocalDateTime current = lastTotalMemberBytes.get();
+            // 이벤트 순서 보장
             if (publishedDateTime.isBefore(lastTotalMemberBytes.get())) {
                 log.info("drop older total event");
                 return;
@@ -105,6 +83,43 @@ public class UsageRecordService {
                         payload.totalLimitBytes(),
                         payload.remainingBytes());
 
-        memberRegistry.send(familyId, "usage-updated-by-member", response);
+        emitterRegistry.send(familyId, "usage-updated-by-member", response);
+    }
+
+    @Scheduled(fixedDelay = 1000)
+    public void pollAndPushIfChanged() {
+        for (Long familyId : emitterRegistry.activeFamilyIds()) {
+
+            Optional<Long> latestOpt = familyCacheRepository.findFamilyRemainingBytes(familyId);
+            if (latestOpt.isEmpty()) {
+                lastSeen.remove(familyId);
+                continue;
+            }
+
+            long remainingBytes = latestOpt.get();
+            Long prev = lastSeen.putIfAbsent(familyId, remainingBytes);
+
+            if (prev == null || prev.longValue() != remainingBytes) {
+                lastSeen.put(familyId, remainingBytes);
+
+                // 임시로 고정
+                long totalLimitBytes = 20000;
+                long totalUsedBytes = totalLimitBytes - remainingBytes;
+                UsageRealtimePayload payload =
+                        new UsageRealtimePayload(
+                                1L,
+                                1L,
+                                totalUsedBytes,
+                                totalLimitBytes,
+                                remainingBytes,
+                                30.0,
+                                null,
+                                null,
+                                null);
+
+                pushTotalUsageBytes(payload, LocalDateTime.now());
+                pushMemberUsageBytes(payload, LocalDateTime.now());
+            }
+        }
     }
 }

@@ -7,49 +7,40 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import lombok.extern.slf4j.Slf4j;
 
+@Component
 @Slf4j
-public class SseEmitterRegistry {
-
-    private final String registryName;
+public class EmitterRegistry {
     private final Map<Long, List<SseEmitter>> map = new ConcurrentHashMap<>();
 
-    public SseEmitterRegistry(String registryName) {
-        this.registryName = registryName;
-    }
-
-    public List<SseEmitter> getEmitters(Long key) {
-        return map.get(key);
-    }
-
-    public SseEmitter register(Long key) {
+    public SseEmitter register(Long familyId) {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
-        int emitterId = emitter.hashCode();
+        int id = emitter.hashCode();
 
-        map.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>()).add(emitter);
+        map.computeIfAbsent(familyId, k -> new CopyOnWriteArrayList<>()).add(emitter);
 
         try {
             emitter.send(SseEmitter.event().name("connected").data("ok"));
         } catch (IOException e) {
             emitter.completeWithError(e);
-            remove(key, emitter);
             return emitter;
         }
 
-        Runnable cleanup = () -> remove(key, emitter);
+        Runnable cleanup = () -> remove(familyId, emitter);
 
         emitter.onCompletion(
                 () -> {
-                    log.info("[{}] SSE completed: emitterId={}", registryName, emitterId);
+                    log.info("SSE completed: emitter={}", emitter);
                     cleanup.run();
                 });
 
         emitter.onTimeout(
                 () -> {
-                    log.info("[{}] SSE timed out: emitterId={}", registryName, emitterId);
+                    log.info("SSE timed out: emitter={}", emitter);
                     cleanup.run();
                 });
 
@@ -57,31 +48,27 @@ public class SseEmitterRegistry {
                 throwable -> {
                     if (isClientDisconnect(throwable)) {
                         log.warn(
-                                "[{}] SSE client disconnect: emitterId={}, cause={}",
-                                registryName,
-                                emitterId,
+                                "SSE client disconnect: emitterId={}, cause={}",
+                                id,
                                 rootMessage(throwable));
                     } else if (isAlreadyCompleted(throwable)) {
                         log.debug(
-                                "[{}] SSE already completed: emitterId={}, cause={}",
-                                registryName,
-                                emitterId,
+                                "SSE already completed: emitterId={}, cause={}",
+                                id,
                                 rootMessage(throwable));
                     } else {
                         log.error(
-                                "[{}] SSE send failed: emitterId={}, cause={}",
-                                registryName,
-                                emitterId,
+                                "SSE send failed: emitterId={}, cause={}",
+                                id,
                                 rootMessage(throwable));
                     }
                     cleanup.run();
                 });
-
         return emitter;
     }
 
-    public void send(Long key, String eventName, Object data) {
-        List<SseEmitter> list = map.get(key);
+    public void send(Long familyId, String eventName, Object data) {
+        List<SseEmitter> list = map.get(familyId);
         if (list == null) {
             return;
         }
@@ -89,28 +76,28 @@ public class SseEmitterRegistry {
         for (SseEmitter emitter : list) {
             try {
                 emitter.send(SseEmitter.event().name(eventName).data(data));
-                log.info("[{}] sent success: emitterId={}", registryName, emitter.hashCode());
+                log.info("sent success: emitter= id {}", emitter.hashCode());
             } catch (IOException e) {
-                remove(key, emitter);
+                remove(familyId, emitter);
             }
         }
     }
 
-    public Set<Long> activeKeys() {
-        return map.keySet();
-    }
-
-    private void remove(Long key, SseEmitter emitter) {
+    private void remove(Long familyId, SseEmitter emitter) {
         map.computeIfPresent(
-                key,
+                familyId,
                 (id, list) -> {
                     list.remove(emitter);
-                    return list.isEmpty() ? null : list;
+
+                    if (list.isEmpty()) {
+                        return null;
+                    }
+                    return list;
                 });
     }
 
     private boolean isClientDisconnect(Throwable throwable) {
-        String message = safeLower(rootMessage(throwable));
+        String message = rootMessage(throwable).toLowerCase();
         return message.contains("broken pipe")
                 || message.contains("clientabort")
                 || message.contains("eof");
@@ -121,11 +108,10 @@ public class SseEmitterRegistry {
     }
 
     private String rootMessage(Throwable throwable) {
-        Throwable root = (throwable.getCause() != null) ? throwable.getCause() : throwable;
-        return root.getMessage();
+        return (throwable.getCause() != null ? throwable.getCause() : throwable).getMessage();
     }
 
-    private String safeLower(String message) {
-        return message == null ? "" : message.toLowerCase();
+    public Set<Long> activeFamilyIds() {
+        return map.keySet();
     }
 }

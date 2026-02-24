@@ -1,0 +1,30 @@
+package com.project.domain.usagerecord.infra.sse;
+
+import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import com.project.domain.family.repository.FamilyMemberRepository;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.FamilyErrorCode;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class SseSubscriber {
+
+    private final FamilyMemberRepository familyMemberRepository;
+    private final EmitterRegistry registry;
+
+    public SseEmitter subscribe(Long customerId) {
+        Long familyId =
+                familyMemberRepository
+                        .findFamilyIdByCustomerId(customerId)
+                        .orElseThrow(
+                                () -> new ApplicationException(FamilyErrorCode.FAMILY_NOT_FOUND));
+
+        return registry.register(familyId);
+    }
+}
