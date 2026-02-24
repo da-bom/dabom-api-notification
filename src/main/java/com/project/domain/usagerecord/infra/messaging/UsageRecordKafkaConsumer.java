@@ -3,7 +3,6 @@ package com.project.domain.usagerecord.infra.messaging;
 import java.time.LocalDateTime;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +23,6 @@ public class UsageRecordKafkaConsumer {
 
     private final ObjectMapper objectMapper;
     private final UsageRecordService usageRecordService;
-    private final ApplicationEventPublisher publisher;
 
     @KafkaListener(topics = "usage-realtime", groupId = "usage-service")
     public void consume(ConsumerRecord<String, String> record) {

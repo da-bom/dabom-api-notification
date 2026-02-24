@@ -29,8 +29,10 @@ public class UsageRecordService {
 
     private final FamilyMemberRepository familyMemberRepository;
 
-    private final AtomicReference<LocalDateTime> lastTotalBytesTime = new AtomicReference<>();
-    private final AtomicReference<LocalDateTime> lastTotalMemberBytes = new AtomicReference<>();
+    private final AtomicReference<LocalDateTime> lastTotalBytesTime =
+            new AtomicReference<>(LocalDateTime.MIN);
+    private final AtomicReference<LocalDateTime> lastTotalMemberBytes =
+            new AtomicReference<>(LocalDateTime.MIN);
 
     public SseEmitter subscribeTotal(Long customerId) {
         Long familyId =
