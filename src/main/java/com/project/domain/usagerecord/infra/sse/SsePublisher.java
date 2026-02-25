@@ -141,8 +141,8 @@ public class SsePublisher {
                                 null);
 
                 LocalDateTime now = LocalDateTime.now();
-                pushTotalUsageBytes(payload, now);
-                pushMemberUsageBytes(payload, now);
+                this.pushTotalUsageBytes(payload, now);
+                this.pushMemberUsageBytes(payload, now);
             }
         }
     }
