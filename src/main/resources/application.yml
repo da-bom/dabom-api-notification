@@ -19,6 +19,7 @@ spring:
 
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
+    open-in-view: false
 
   jwt:
     secret-key: ${JWT_SECRET_KEY:06ea6f4c33fe8d51a32087252ce84c08e059f556e1496666375eb9a797b1914f}
