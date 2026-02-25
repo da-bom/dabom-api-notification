@@ -35,6 +35,7 @@ public class SsePublisher {
 
     @Async
     public void pushTotalUsageBytes(UsageRealtimePayload payload, LocalDateTime publishedDateTime) {
+        log.info("pushTotalUsageBytes thread : {}", Thread.currentThread().getName());
         Long familyId = payload.familyId();
         AtomicReference<LocalDateTime> lastRef = totalTsRef(familyId);
 
@@ -68,6 +69,8 @@ public class SsePublisher {
     @Async
     public void pushMemberUsageBytes(
             UsageRealtimePayload payload, LocalDateTime publishedDateTime) {
+        log.info("pushMemberusageBytes thread : {}", Thread.currentThread().getName());
+
         Long familyId = payload.familyId();
         Long customerId = payload.customerId();
         AtomicReference<LocalDateTime> lastRef = memberTsRef(familyId);

@@ -10,6 +10,7 @@ import com.project.domain.usagerecord.infra.sse.SseSubscriber;
 import com.project.global.auth.aop.CustomerId;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,7 +23,8 @@ public class FamilyController {
 
     @GetMapping(value = "/usage/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "가족 총 데이터 사용량 조회")
-    public SseEmitter getCurrentUsage(@CustomerId Long customerId) {
+    public SseEmitter getCurrentUsage(@Parameter(hidden = true) @CustomerId Long customerId) {
+
         return sseSubscriber.subscribe(customerId);
     }
 }
