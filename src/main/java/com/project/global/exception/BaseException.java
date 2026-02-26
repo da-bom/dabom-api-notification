@@ -14,6 +14,11 @@ public abstract class BaseException extends RuntimeException {
         this.code = code;
     }
 
+    protected BaseException(BaseErrorCode code, String message) {
+        super(message);
+        this.code = code;
+    }
+
     public static <T extends BaseException> T from(BaseErrorCode code, Class<T> exceptionClass) {
         try {
             return exceptionClass.getConstructor(BaseErrorCode.class).newInstance(code);
