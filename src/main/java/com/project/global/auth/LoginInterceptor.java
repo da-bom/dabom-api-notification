@@ -1,5 +1,7 @@
 package com.project.global.auth;
 
+import java.io.IOException;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -13,9 +15,24 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(
-            HttpServletRequest request, HttpServletResponse response, Object handler) {
-        final String token = AuthorizationExtractor.extract(request);
-        jwtTokenUtil.verify(token);
-        return true;
+            HttpServletRequest request, HttpServletResponse response, Object handler)
+            throws IOException {
+
+        try {
+            final String token = AuthorizationExtractor.extract(request);
+            jwtTokenUtil.verify(token);
+            return true;
+
+        } catch (IllegalArgumentException e) {
+
+            response.setStatus(HttpServletResponse.SC_BAD_GATEWAY);
+            response.setContentType("application/json;charset=UTF-8");
+
+            String msg = e.getMessage();
+
+            response.getWriter().write("{\"message\":\"" + msg + "\"}");
+
+            return false;
+        }
     }
 }
