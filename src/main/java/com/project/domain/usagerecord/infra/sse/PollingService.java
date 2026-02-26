@@ -45,7 +45,7 @@ public class PollingService {
                 UsageRealtimePayload payload =
                         new UsageRealtimePayload(
                                 familyId,
-                                1L,
+                                4L,
                                 totalUsedBytes,
                                 totalLimitBytes,
                                 remainingBytes,
