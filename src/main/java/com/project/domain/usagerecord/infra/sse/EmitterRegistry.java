@@ -85,10 +85,10 @@ public class EmitterRegistry {
     }
 
     public void sendHeartbeat() {
-        final String HEARTBEAT_EVENT_NAME = "heartbeat";
-        final String HEARTBEAT_EVENT_DATA = "ping";
+        final String heartbeatEventName = "heartbeat";
+        final String heartbeatEventBody = "ping";
         for (Long familyId : activeFamilyIds()) {
-            send(familyId, HEARTBEAT_EVENT_NAME, HEARTBEAT_EVENT_DATA);
+            send(familyId, heartbeatEventName, heartbeatEventBody);
         }
     }
 
