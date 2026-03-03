@@ -84,6 +84,12 @@ public class EmitterRegistry {
         }
     }
 
+    public void sendHeartbeat() {
+        for (Long familyId : activeFamilyIds()) {
+            send(familyId, "heartbeat", "ping");
+        }
+    }
+
     private void remove(Long familyId, SseEmitter emitter) {
         map.computeIfPresent(
                 familyId,

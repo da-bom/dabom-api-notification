@@ -60,4 +60,9 @@ public class PollingService {
             }
         }
     }
+
+    @Scheduled(fixedDelay = 25000)
+    public void sendHeartbeat() {
+        emitterRegistry.sendHeartbeat();
+    }
 }
