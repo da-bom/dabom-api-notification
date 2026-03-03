@@ -25,6 +25,8 @@ public class SseEmitterRegistry {
         return map.get(key);
     }
 
+    // 1) emitter를 등록하고 connected 이벤트를 즉시 전송합니다.
+    // 2) 완료/타임아웃/에러 콜백에서 공통 cleanup으로 연결을 정리합니다.
     public SseEmitter register(Long key) {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
         int emitterId = emitter.hashCode();
@@ -80,9 +82,15 @@ public class SseEmitterRegistry {
         return emitter;
     }
 
+    // 특정 key에 연결된 emitter들에 이벤트를 브로드캐스트합니다.
     public void send(Long key, String eventName, Object data) {
         List<SseEmitter> list = map.get(key);
         if (list == null) {
+            log.debug(
+                    "🎯[{}] skip send: no active emitters, key={}, eventName={}",
+                    registryName,
+                    key,
+                    eventName);
             return;
         }
 
@@ -96,6 +104,7 @@ public class SseEmitterRegistry {
         }
     }
 
+    // 현재 연결이 유지 중인 key 목록을 반환합니다.
     public Set<Long> activeKeys() {
         return map.keySet();
     }
