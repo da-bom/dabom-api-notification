@@ -21,6 +21,8 @@ public class PollingService {
     private final ConcurrentHashMap<Long, Long> lastSeen = new ConcurrentHashMap<>();
     private final SsePublisher ssePublisher;
 
+    private static final long HEARTBEAT_DELAY_MS = 25_000L;
+
     @Scheduled(fixedDelay = 1000)
     public void pollAndPushIfChanged() {
 
@@ -61,7 +63,7 @@ public class PollingService {
         }
     }
 
-    @Scheduled(fixedDelay = 25000)
+    @Scheduled(fixedDelay = HEARTBEAT_DELAY_MS)
     public void sendHeartbeat() {
         emitterRegistry.sendHeartbeat();
     }
