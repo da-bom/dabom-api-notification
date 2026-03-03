@@ -78,7 +78,8 @@ public class SsePublisher {
 
             if (!publishedDateTime.isAfter(current)) {
                 log.info(
-                        "🎯drop older member event: familyId={}, customerId={}, incoming={}, last={}",
+                        "🎯drop older member event: familyId={}, customerId={}, incoming={},"
+                                + " last={}",
                         familyId,
                         customerId,
                         publishedDateTime,
