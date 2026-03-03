@@ -18,6 +18,8 @@ public class SseSubscriber {
     private final FamilyMemberRepository familyMemberRepository;
     private final EmitterRegistry registry;
 
+    // 1) customerId로 familyId를 조회합니다.
+    // 2) familyId 기준 SSE emitter를 등록해 구독을 시작합니다.
     public SseEmitter subscribe(Long customerId) {
         Long familyId =
                 familyMemberRepository

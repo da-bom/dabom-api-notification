@@ -21,6 +21,10 @@ public class PollingService {
     private final ConcurrentHashMap<Long, Long> lastSeen = new ConcurrentHashMap<>();
     private final SsePublisher ssePublisher;
 
+    private static final long HEARTBEAT_DELAY_MS = 25_000L;
+
+    // 1) 활성 familyId를 순회하며 최신 잔여 용량을 조회합니다.
+    // 2) 이전 값과 다를 때만 페이로드를 생성해 SSE로 전송합니다.
     @Scheduled(fixedDelay = 1000)
     public void pollAndPushIfChanged() {
 
@@ -59,5 +63,11 @@ public class PollingService {
                 ssePublisher.pushMemberUsageBytes(payload, now);
             }
         }
+    }
+
+    // 연결 유지를 위해 고정 주기로 heartbeat 이벤트를 전송합니다.
+    @Scheduled(fixedDelay = HEARTBEAT_DELAY_MS)
+    public void sendHeartbeat() {
+        emitterRegistry.sendHeartbeat();
     }
 }
