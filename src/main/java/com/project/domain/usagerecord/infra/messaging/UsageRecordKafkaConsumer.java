@@ -24,7 +24,7 @@ public class UsageRecordKafkaConsumer {
     private final ObjectMapper objectMapper;
     private final SsePublisher ssePublisher;
 
-    @KafkaListener(topics = "usage-realtime", groupId = "usage-service")
+    @KafkaListener(topics = "usage-realtime", containerFactory = "broadcastKafkaListenerContainerFactory")
     public void consume(ConsumerRecord<String, String> record) {
         try {
             EventEnvelope<UsageRealtimePayload> envelope =
