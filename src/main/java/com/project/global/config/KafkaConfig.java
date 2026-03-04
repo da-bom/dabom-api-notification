@@ -2,6 +2,7 @@ package com.project.global.config;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -35,6 +36,9 @@ public class KafkaConfig {
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
+
+    @Value("${spring.kafka.broadcast.group-id-prefix:usage-realtime}")
+    private String broadcastGroupIdPrefix;
 
     // ========================================================================
     // 1. Producer 설정
@@ -84,6 +88,30 @@ public class KafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
+        return factory;
+    }
+
+    // ========================================================================
+    // 3. Broadcast Consumer 설정 (인스턴스마다 고유 group ID → 브로드캐스팅)
+    // ========================================================================
+    @Bean("broadcastKafkaListenerContainerFactory")
+    public ConcurrentKafkaListenerContainerFactory<String, Object>
+            broadcastKafkaListenerContainerFactory() {
+        String uniqueGroupId =
+                broadcastGroupIdPrefix + "-" + UUID.randomUUID().toString().substring(0, 8);
+
+        Map<String, Object> config = new HashMap<>();
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, uniqueGroupId);
+        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        config.put(
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        config.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, StringDeserializer.class);
+        config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(config));
         return factory;
     }
 }
