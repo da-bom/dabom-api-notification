@@ -35,9 +35,13 @@ import lombok.RequiredArgsConstructor;
 public class KafkaConfig {
 
     private static final int GROUP_ID_SUFFIX_LENGTH = 8;
+    private static final String HOSTNAME_ENV_KEY = "HOSTNAME";
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
+
+    @Value("${spring.kafka.consumer.group-id:dabom-api-notification}")
+    private String defaultGroupId;
 
     @Value("${spring.kafka.broadcast.group-id-prefix:usage-realtime}")
     private String broadcastGroupIdPrefix;
@@ -84,7 +88,7 @@ public class KafkaConfig {
     @Bean
     public ConsumerFactory<String, Object> consumerFactory() {
         Map<String, Object> config = consumerBaseConfig();
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, "example-group");
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, defaultGroupId);
         return new DefaultKafkaConsumerFactory<>(config);
     }
 
@@ -113,7 +117,7 @@ public class KafkaConfig {
     }
 
     private String resolveInstanceId() {
-        String hostname = System.getenv("HOSTNAME");
+        String hostname = System.getenv(HOSTNAME_ENV_KEY);
         if (hostname != null && !hostname.isBlank()) {
             return hostname;
         }
