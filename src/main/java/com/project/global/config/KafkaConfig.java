@@ -34,6 +34,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class KafkaConfig {
 
+    private static final int GROUP_ID_SUFFIX_LENGTH = 8;
+
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
@@ -78,7 +80,7 @@ public class KafkaConfig {
         config.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, StringDeserializer.class);
 
         // Trusted Packages 설정: 모든 패키지의 객체 허용 (보안상 필요시 패키지명 지정)
-        config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        config.put(JsonDeserializer.TRUSTED_PACKAGES, "com.project.*");
 
         return new DefaultKafkaConsumerFactory<>(config);
     }
@@ -97,8 +99,7 @@ public class KafkaConfig {
     @Bean("broadcastKafkaListenerContainerFactory")
     public ConcurrentKafkaListenerContainerFactory<String, Object>
             broadcastKafkaListenerContainerFactory() {
-        String uniqueGroupId =
-                broadcastGroupIdPrefix + "-" + UUID.randomUUID().toString().substring(0, 8);
+        String uniqueGroupId = broadcastGroupIdPrefix + "-" + resolveInstanceId();
 
         Map<String, Object> config = new HashMap<>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -106,11 +107,19 @@ public class KafkaConfig {
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
         config.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, StringDeserializer.class);
-        config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        config.put(JsonDeserializer.TRUSTED_PACKAGES, "com.project.*");
 
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(config));
         return factory;
+    }
+
+    private String resolveInstanceId() {
+        String hostname = System.getenv("HOSTNAME");
+        if (hostname != null && !hostname.isBlank()) {
+            return hostname;
+        }
+        return UUID.randomUUID().toString().substring(0, GROUP_ID_SUFFIX_LENGTH);
     }
 }
