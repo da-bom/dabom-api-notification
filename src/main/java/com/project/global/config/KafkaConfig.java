@@ -66,22 +66,25 @@ public class KafkaConfig {
     }
 
     // ========================================================================
-    // 2. Consumer 설정
+    // 2. Consumer 공통 설정
+    // ========================================================================
+    private Map<String, Object> consumerBaseConfig() {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        config.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, StringDeserializer.class);
+        config.put(JsonDeserializer.TRUSTED_PACKAGES, "com.project.*");
+        return config;
+    }
+
+    // ========================================================================
+    // 3. 기본 Consumer 설정 (공유 group ID → 로드밸런싱)
     // ========================================================================
     @Bean
     public ConsumerFactory<String, Object> consumerFactory() {
-        Map<String, Object> config = new HashMap<>();
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, "example-group"); // 기본 그룹 ID 지정
-        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-
-        // 에러 처리
-        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        config.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, StringDeserializer.class);
-
-        // Trusted Packages 설정: 모든 패키지의 객체 허용 (보안상 필요시 패키지명 지정)
-        config.put(JsonDeserializer.TRUSTED_PACKAGES, "com.project.*");
-
+        Map<String, Object> config = consumerBaseConfig();
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, "example-group");
         return new DefaultKafkaConsumerFactory<>(config);
     }
 
@@ -94,20 +97,14 @@ public class KafkaConfig {
     }
 
     // ========================================================================
-    // 3. Broadcast Consumer 설정 (인스턴스마다 고유 group ID → 브로드캐스팅)
+    // 4. Broadcast Consumer 설정 (인스턴스마다 고유 group ID → 브로드캐스팅)
     // ========================================================================
     @Bean("broadcastKafkaListenerContainerFactory")
     public ConcurrentKafkaListenerContainerFactory<String, Object>
             broadcastKafkaListenerContainerFactory() {
-        String uniqueGroupId = broadcastGroupIdPrefix + "-" + resolveInstanceId();
-
-        Map<String, Object> config = new HashMap<>();
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, uniqueGroupId);
-        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        config.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, StringDeserializer.class);
-        config.put(JsonDeserializer.TRUSTED_PACKAGES, "com.project.*");
+        Map<String, Object> config = consumerBaseConfig();
+        config.put(
+                ConsumerConfig.GROUP_ID_CONFIG, broadcastGroupIdPrefix + "-" + resolveInstanceId());
 
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();

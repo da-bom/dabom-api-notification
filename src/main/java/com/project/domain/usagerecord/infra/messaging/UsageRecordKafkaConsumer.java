@@ -21,11 +21,13 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class UsageRecordKafkaConsumer {
 
+    private static final String TOPIC_USAGE_REALTIME = "usage-realtime";
+
     private final ObjectMapper objectMapper;
     private final SsePublisher ssePublisher;
 
     @KafkaListener(
-            topics = "usage-realtime",
+            topics = TOPIC_USAGE_REALTIME,
             containerFactory = "broadcastKafkaListenerContainerFactory")
     public void consume(ConsumerRecord<String, String> record) {
         try {
