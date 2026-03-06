@@ -2,6 +2,7 @@ package com.project.global.config;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -18,7 +19,6 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import lombok.RequiredArgsConstructor;
@@ -33,8 +33,19 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class KafkaConfig {
 
+    public static final String BROADCAST_KAFKA_LISTENER_CONTAINER_FACTORY =
+            "broadcastKafkaListenerContainerFactory";
+
+    private static final int GROUP_ID_SUFFIX_LENGTH = 8;
+
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
+
+    @Value("${spring.kafka.consumer.group-id}")
+    private String defaultGroupId;
+
+    @Value("${spring.kafka.broadcast.group-id-prefix}")
+    private String broadcastGroupIdPrefix;
 
     // ========================================================================
     // 1. Producer 설정
@@ -60,22 +71,24 @@ public class KafkaConfig {
     }
 
     // ========================================================================
-    // 2. Consumer 설정
+    // 2. Consumer 공통 설정
+    // ========================================================================
+    private Map<String, Object> consumerBaseConfig() {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        config.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, StringDeserializer.class);
+        return config;
+    }
+
+    // ========================================================================
+    // 3. 기본 Consumer 설정 (공유 group ID → 로드밸런싱)
     // ========================================================================
     @Bean
     public ConsumerFactory<String, Object> consumerFactory() {
-        Map<String, Object> config = new HashMap<>();
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, "example-group"); // 기본 그룹 ID 지정
-        config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-
-        // 에러 처리
-        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
-        config.put(ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, StringDeserializer.class);
-
-        // Trusted Packages 설정: 모든 패키지의 객체 허용 (보안상 필요시 패키지명 지정)
-        config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-
+        Map<String, Object> config = consumerBaseConfig();
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, defaultGroupId);
         return new DefaultKafkaConsumerFactory<>(config);
     }
 
@@ -84,6 +97,25 @@ public class KafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
+        return factory;
+    }
+
+    // ========================================================================
+    // 4. Broadcast Consumer 설정 (인스턴스마다 고유 group ID → 브로드캐스팅)
+    // ========================================================================
+    @Bean(BROADCAST_KAFKA_LISTENER_CONTAINER_FACTORY)
+    public ConcurrentKafkaListenerContainerFactory<String, Object>
+            broadcastKafkaListenerContainerFactory() {
+        Map<String, Object> config = consumerBaseConfig();
+        config.put(
+                ConsumerConfig.GROUP_ID_CONFIG,
+                broadcastGroupIdPrefix
+                        + "-"
+                        + UUID.randomUUID().toString().substring(0, GROUP_ID_SUFFIX_LENGTH));
+
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(config));
         return factory;
     }
 }
