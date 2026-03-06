@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.usagerecord.infra.sse.SsePublisher;
+import com.project.global.config.KafkaConfig;
 import com.project.global.event.dto.EventEnvelope;
 import com.project.global.event.dto.usage.UsageRealtimePayload;
 
@@ -28,7 +29,7 @@ public class UsageRecordKafkaConsumer {
 
     @KafkaListener(
             topics = TOPIC_USAGE_REALTIME,
-            containerFactory = "broadcastKafkaListenerContainerFactory")
+            containerFactory = KafkaConfig.BROADCAST_KAFKA_LISTENER_CONTAINER_FACTORY)
     public void consume(ConsumerRecord<String, String> record) {
         try {
             EventEnvelope<UsageRealtimePayload> envelope =

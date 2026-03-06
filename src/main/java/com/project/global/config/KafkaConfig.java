@@ -34,8 +34,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class KafkaConfig {
 
+    public static final String BROADCAST_KAFKA_LISTENER_CONTAINER_FACTORY =
+            "broadcastKafkaListenerContainerFactory";
+
     private static final int GROUP_ID_SUFFIX_LENGTH = 8;
-    private static final String HOSTNAME_ENV_KEY = "HOSTNAME";
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
@@ -103,24 +105,19 @@ public class KafkaConfig {
     // ========================================================================
     // 4. Broadcast Consumer 설정 (인스턴스마다 고유 group ID → 브로드캐스팅)
     // ========================================================================
-    @Bean("broadcastKafkaListenerContainerFactory")
+    @Bean(BROADCAST_KAFKA_LISTENER_CONTAINER_FACTORY)
     public ConcurrentKafkaListenerContainerFactory<String, Object>
             broadcastKafkaListenerContainerFactory() {
         Map<String, Object> config = consumerBaseConfig();
         config.put(
-                ConsumerConfig.GROUP_ID_CONFIG, broadcastGroupIdPrefix + "-" + resolveInstanceId());
+                ConsumerConfig.GROUP_ID_CONFIG,
+                broadcastGroupIdPrefix
+                        + "-"
+                        + UUID.randomUUID().toString().substring(0, GROUP_ID_SUFFIX_LENGTH));
 
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(config));
         return factory;
-    }
-
-    private String resolveInstanceId() {
-        String hostname = System.getenv(HOSTNAME_ENV_KEY);
-        if (hostname != null && !hostname.isBlank()) {
-            return hostname;
-        }
-        return UUID.randomUUID().toString().substring(0, GROUP_ID_SUFFIX_LENGTH);
     }
 }
