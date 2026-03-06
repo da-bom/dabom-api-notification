@@ -42,10 +42,10 @@ public class KafkaConfig {
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
-    @Value("${spring.kafka.consumer.group-id:dabom-api-notification}")
+    @Value("${spring.kafka.consumer.group-id}")
     private String defaultGroupId;
 
-    @Value("${spring.kafka.broadcast.group-id-prefix:usage-realtime}")
+    @Value("${spring.kafka.broadcast.group-id-prefix}")
     private String broadcastGroupIdPrefix;
 
     // ========================================================================
