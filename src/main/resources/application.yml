@@ -73,3 +73,8 @@ management:
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+
+vapid:
+  key:
+    public: BGD2DUKkhcACAylBLJ4HKeogq07OOMDoosOyo53U2_Lt7HaBsxUJPWV8hWvz72N9_lZ-_DVQ7CPyx6XjcWJuLGk
+    private: F3cKuux1Px8Dv4dydW-nYkeo4PK_ESK0AZgkM-skrC4
