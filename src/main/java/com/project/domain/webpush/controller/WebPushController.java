@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.domain.webpush.controller.dto.PushMessageRequest;
 import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
 import com.project.domain.webpush.controller.dto.VapidPublicKey;
 import com.project.domain.webpush.service.WebPushService;
@@ -40,9 +41,9 @@ public class WebPushController {
 
     @PostMapping("/send")
     public ApiResponse<Void> sendPushMessage(
-            @CustomerId Long customerId, @RequestBody String message) {
+            @CustomerId Long customerId, @Valid @RequestBody PushMessageRequest request) {
         log.info("Push message send requested for customerId={}", customerId);
-        webPushService.sendToUser(customerId, message);
+        webPushService.sendToUser(customerId, request.message());
         return ApiResponse.success(null);
     }
 }
