@@ -39,6 +39,12 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${cors.allowed-origins:http://localhost:3000}")
     private String allowedOrigins;
 
+    @Value("${push-client.connect-timeout:5000}")
+    private int pushConnectTimeout;
+
+    @Value("${push-client.socket-timeout:5000}")
+    private int pushSocketTimeout;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
@@ -67,7 +73,10 @@ public class WebConfig implements WebMvcConfigurer {
     @Bean
     public CloseableHttpClient pushHttpClient() {
         RequestConfig requestConfig =
-                RequestConfig.custom().setConnectTimeout(5000).setSocketTimeout(5000).build();
+                RequestConfig.custom()
+                        .setConnectTimeout(pushConnectTimeout)
+                        .setSocketTimeout(pushSocketTimeout)
+                        .build();
         return HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
     }
 
