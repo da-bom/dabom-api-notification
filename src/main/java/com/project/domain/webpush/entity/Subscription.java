@@ -49,4 +49,10 @@ public class Subscription extends BaseEntity {
         this.p256dh = p256dh;
         this.auth = auth;
     }
+
+    public void reassign(Long customerId, String p256dh, String auth) {
+        this.customerId = customerId;
+        this.p256dh = p256dh;
+        this.auth = auth;
+    }
 }

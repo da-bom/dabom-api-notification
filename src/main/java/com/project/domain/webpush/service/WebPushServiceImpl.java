@@ -8,6 +8,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -49,31 +50,33 @@ public class WebPushServiceImpl implements WebPushService {
     public void subscribe(PushSubscriptionRequest request, Long customerId) {
         validateEndpointUrl(request.endpoint());
 
-        subscriptionRepository
-                .findByEndpoint(request.endpoint())
-                .filter(sub -> !sub.getCustomerId().equals(customerId))
-                .ifPresent(
-                        sub -> {
-                            subscriptionRepository.delete(sub);
-                            subscriptionRepository.flush();
-                        });
+        Optional<Subscription> byEndpoint =
+                subscriptionRepository.findByEndpoint(request.endpoint());
+        Optional<Subscription> byCustomer = subscriptionRepository.findByCustomerId(customerId);
 
-        subscriptionRepository
-                .findByCustomerId(customerId)
-                .ifPresentOrElse(
-                        existing ->
-                                existing.updateSubscription(
-                                        request.endpoint(), request.p256dh(), request.authKey()),
-                        () -> {
-                            Subscription subscription =
-                                    Subscription.builder()
-                                            .endpoint(request.endpoint())
-                                            .p256dh(request.p256dh())
-                                            .auth(request.authKey())
-                                            .customerId(customerId)
-                                            .build();
-                            subscriptionRepository.save(subscription);
-                        });
+        if (byEndpoint.isPresent()) {
+            Subscription endpointSub = byEndpoint.get();
+            if (endpointSub.getCustomerId().equals(customerId)) {
+                endpointSub.updateSubscription(
+                        request.endpoint(), request.p256dh(), request.authKey());
+            } else {
+                byCustomer.ifPresent(subscriptionRepository::delete);
+                endpointSub.reassign(customerId, request.p256dh(), request.authKey());
+            }
+        } else if (byCustomer.isPresent()) {
+            byCustomer
+                    .get()
+                    .updateSubscription(request.endpoint(), request.p256dh(), request.authKey());
+        } else {
+            Subscription subscription =
+                    Subscription.builder()
+                            .endpoint(request.endpoint())
+                            .p256dh(request.p256dh())
+                            .auth(request.authKey())
+                            .customerId(customerId)
+                            .build();
+            subscriptionRepository.save(subscription);
+        }
     }
 
     @Transactional(readOnly = true)
