@@ -79,7 +79,6 @@ public class WebPushServiceImpl implements WebPushService {
         }
     }
 
-    @Transactional(readOnly = true)
     @Override
     public void sendToUser(Long customerId, String message) {
         Subscription subscription =
@@ -93,7 +92,6 @@ public class WebPushServiceImpl implements WebPushService {
         sendPushNotification(subscription, message);
     }
 
-    @Transactional(readOnly = true)
     @Override
     public void sendToFamily(Long familyId, String message) {
         List<Long> customerIds = familyMemberRepository.findCustomerIdsByFamilyId(familyId);
