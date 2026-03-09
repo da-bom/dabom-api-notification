@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.project.domain.family.entity.FamilyMember;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
 import com.project.domain.webpush.entity.Subscription;
@@ -84,10 +83,7 @@ public class WebPushServiceImpl implements WebPushService {
     @Transactional(readOnly = true)
     @Override
     public void sendToFamily(Long familyId, String message) {
-        List<Long> customerIds =
-                familyMemberRepository.findAllByFamilyId(familyId).stream()
-                        .map(FamilyMember::getCustomerId)
-                        .toList();
+        List<Long> customerIds = familyMemberRepository.findCustomerIdsByFamilyId(familyId);
 
         List<Subscription> subscriptions =
                 subscriptionRepository.findAllByCustomerIdIn(customerIds);
@@ -124,9 +120,8 @@ public class WebPushServiceImpl implements WebPushService {
                                     subscription.getP256dh(), subscription.getAuth()));
             Notification notification = new Notification(sub, message);
             try (CloseableHttpResponse response =
-                    (CloseableHttpResponse)
-                            pushHttpClient.execute(
-                                    pushService.preparePost(notification, Encoding.AES128GCM))) {
+                    pushHttpClient.execute(
+                            pushService.preparePost(notification, Encoding.AES128GCM))) {
                 log.info(
                         "Push message sent with status code: {}",
                         response.getStatusLine().getStatusCode());

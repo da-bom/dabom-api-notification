@@ -17,4 +17,7 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
 
     @Query("select fm.familyId from FamilyMember fm where fm.customerId = :customerId")
     Optional<Long> findFamilyIdByCustomerId(Long customerId);
+
+    @Query("SELECT fm.customerId FROM FamilyMember fm WHERE fm.familyId = :familyId")
+    List<Long> findCustomerIdsByFamilyId(Long familyId);
 }
