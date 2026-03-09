@@ -6,9 +6,9 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jose4j.lang.JoseException;
 import org.springframework.stereotype.Service;
@@ -37,6 +37,7 @@ public class WebPushServiceImpl implements WebPushService {
     private final SubscriptionRepository subscriptionRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final PushService pushService;
+    private final CloseableHttpClient pushHttpClient;
 
     @Transactional
     @Override
@@ -113,7 +114,9 @@ public class WebPushServiceImpl implements WebPushService {
                             new nl.martijndwars.webpush.Subscription.Keys(
                                     subscription.getP256dh(), subscription.getAuth()));
             Notification notification = new Notification(sub, message);
-            HttpResponse response = pushService.send(notification, Encoding.AES128GCM);
+            HttpResponse response =
+                    pushHttpClient.execute(
+                            pushService.preparePost(notification, Encoding.AES128GCM));
 
             log.info(
                     "Push message sent with status code: {}",
@@ -121,11 +124,7 @@ public class WebPushServiceImpl implements WebPushService {
             String body =
                     response.getEntity() != null ? EntityUtils.toString(response.getEntity()) : "";
             log.info("Push response status={}, body={}", response.getStatusLine(), body);
-        } catch (GeneralSecurityException
-                | IOException
-                | JoseException
-                | ExecutionException
-                | InterruptedException e) {
+        } catch (GeneralSecurityException | IOException | JoseException e) {
             log.error("Failed to send push notification", e);
             throw new ApplicationException(SubscriptionErrorCode.PUSH_SEND_FAILED);
         }

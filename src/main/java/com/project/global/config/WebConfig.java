@@ -4,6 +4,9 @@ import java.security.GeneralSecurityException;
 import java.security.Security;
 import java.util.List;
 
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -61,7 +64,12 @@ public class WebConfig implements WebMvcConfigurer {
         resolvers.add(new CustomerArgumentResolver(jwtTokenUtil));
     }
 
-    // 자바 라이브러리에서 제공하는 push 서비스를 빈으로 등록한다
+    @Bean
+    public CloseableHttpClient pushHttpClient() {
+        RequestConfig requestConfig =
+                RequestConfig.custom().setConnectTimeout(5000).setSocketTimeout(5000).build();
+        return HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
+    }
 
     @Bean
     public PushService pushService() throws GeneralSecurityException {
