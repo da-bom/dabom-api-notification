@@ -2,6 +2,7 @@ package com.project.domain.webpush.service;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.http.HttpResponse;
@@ -10,6 +11,8 @@ import org.jose4j.lang.JoseException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.project.domain.family.entity.FamilyMember;
+import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
 import com.project.domain.webpush.entity.Subscription;
 import com.project.domain.webpush.repository.SubscriptionRepository;
@@ -29,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 public class WebPushServiceImpl implements WebPushService {
 
     private final SubscriptionRepository subscriptionRepository;
+    private final FamilyMemberRepository familyMemberRepository;
     private final PushService pushService;
 
     @Transactional
@@ -69,15 +73,15 @@ public class WebPushServiceImpl implements WebPushService {
     @Transactional(readOnly = true)
     @Override
     public void sendToFamily(Long familyId, String message) {
-        Subscription subscription =
-                subscriptionRepository
-                        .findByCustomerId(familyId)
-                        .orElseThrow(
-                                () ->
-                                        new ApplicationException(
-                                                SubscriptionErrorCode.SUBSCRIPTION_NOT_FOUND));
+        List<Long> customerIds =
+                familyMemberRepository.findAllByFamilyId(familyId).stream()
+                        .map(FamilyMember::getCustomerId)
+                        .toList();
 
-        sendPushNotification(subscription, message);
+        List<Subscription> subscriptions =
+                subscriptionRepository.findAllByCustomerIdIn(customerIds);
+
+        subscriptions.forEach(subscription -> sendPushNotification(subscription, message));
     }
 
     private void sendPushNotification(Subscription subscription, String message) {
