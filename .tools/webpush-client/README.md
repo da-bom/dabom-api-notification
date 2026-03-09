@@ -2,7 +2,7 @@
 
 Standalone browser client for testing:
 
-- `GET /push/vapidPublicKey`
+- `GET /push/vapid-public-key`
 - `POST /push/subscribe`
 - `POST /push/send`
 
@@ -11,7 +11,7 @@ Standalone browser client for testing:
 From repository root:
 
 ```bash
-cd webpush-client
+cd .tools/webpush-client
 python3 -m http.server 3000
 ```
 
@@ -28,4 +28,4 @@ Open:
 5. Click `Subscribe`
 6. Enter message and click `Send push`
 
-If backend JWT secret differs from default, change `JWT secret` field first.
+Set `JWT secret` field to your backend's JWT secret before generating a token.

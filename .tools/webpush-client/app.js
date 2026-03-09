@@ -157,7 +157,7 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function fetchVapidPublicKey() {
-  const response = await fetch(`${getBaseUrl()}/push/vapidPublicKey`, {
+  const response = await fetch(`${getBaseUrl()}/push/vapid-public-key`, {
     method: "GET",
     headers: {
       ...getAuthHeaders(),
@@ -169,10 +169,10 @@ async function fetchVapidPublicKey() {
   }
 
   const body = await response.json();
-  if (!body.publicKey) {
+  if (!body.data || !body.data.publicKey) {
     throw new Error(`invalid vapidPublicKey response: ${JSON.stringify(body)}`);
   }
-  return body.publicKey;
+  return body.data.publicKey;
 }
 
 async function onSubscribe() {
