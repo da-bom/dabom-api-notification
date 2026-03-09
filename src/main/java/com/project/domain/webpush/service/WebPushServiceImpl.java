@@ -1,6 +1,9 @@
 package com.project.domain.webpush.service;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.URI;
+import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -38,6 +41,7 @@ public class WebPushServiceImpl implements WebPushService {
     @Transactional
     @Override
     public void subscribe(PushSubscriptionRequest request, Long customerId) {
+        validateEndpointUrl(request.endpoint());
         subscriptionRepository
                 .findByCustomerId(customerId)
                 .ifPresentOrElse(
@@ -82,6 +86,23 @@ public class WebPushServiceImpl implements WebPushService {
                 subscriptionRepository.findAllByCustomerIdIn(customerIds);
 
         subscriptions.forEach(subscription -> sendPushNotification(subscription, message));
+    }
+
+    private void validateEndpointUrl(String endpoint) {
+        try {
+            URI uri = URI.create(endpoint);
+            if (!"https".equalsIgnoreCase(uri.getScheme())) {
+                throw new ApplicationException(SubscriptionErrorCode.INVALID_ENDPOINT_URL);
+            }
+            InetAddress address = InetAddress.getByName(uri.getHost());
+            if (address.isLoopbackAddress()
+                    || address.isLinkLocalAddress()
+                    || address.isSiteLocalAddress()) {
+                throw new ApplicationException(SubscriptionErrorCode.INVALID_ENDPOINT_URL);
+            }
+        } catch (IllegalArgumentException | UnknownHostException e) {
+            throw new ApplicationException(SubscriptionErrorCode.INVALID_ENDPOINT_URL);
+        }
     }
 
     private void sendPushNotification(Subscription subscription, String message) {
