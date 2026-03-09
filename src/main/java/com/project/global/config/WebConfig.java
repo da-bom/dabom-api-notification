@@ -28,7 +28,7 @@ public class WebConfig implements WebMvcConfigurer {
     private final JwtTokenUtil jwtTokenUtil;
 
     @Value("${vapid.key.public}")
-    public String vapidPublicKey;
+    private String vapidPublicKey;
 
     @Value("${vapid.key.private}")
     private String vapidPrivateKey;
