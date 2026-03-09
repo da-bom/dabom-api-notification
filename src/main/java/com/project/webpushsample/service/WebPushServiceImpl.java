@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.SubscriptionErrorCode;
+import com.project.webpushsample.controller.dto.PushSubscriptionRequest;
 import com.project.webpushsample.domain.Subscription;
 import com.project.webpushsample.repository.SubscriptionRepository;
 
@@ -29,7 +30,14 @@ public class WebPushServiceImpl implements WebPushService {
     private final PushService pushService;
 
     @Override
-    public void subscribe(Subscription subscription) {
+    public void subscribe(PushSubscriptionRequest request, Long customerId) {
+        Subscription subscription =
+                Subscription.builder()
+                        .endpoint(request.endpoint())
+                        .p256dh(request.keys().get("p256dh"))
+                        .auth(request.keys().get("auth"))
+                        .customerId(customerId)
+                        .build();
         subscriptionRepository.save(subscription);
     }
 

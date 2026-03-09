@@ -1,10 +1,10 @@
 package com.project.webpushsample.service;
 
-import com.project.webpushsample.domain.Subscription;
+import com.project.webpushsample.controller.dto.PushSubscriptionRequest;
 
 public interface WebPushService {
 
-    void subscribe(Subscription subscription);
+    void subscribe(PushSubscriptionRequest request, Long customerId);
 
     String getVapidPublicKey();
 
