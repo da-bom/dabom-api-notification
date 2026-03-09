@@ -48,6 +48,16 @@ public class WebPushServiceImpl implements WebPushService {
     @Override
     public void subscribe(PushSubscriptionRequest request, Long customerId) {
         validateEndpointUrl(request.endpoint());
+
+        subscriptionRepository
+                .findByEndpoint(request.endpoint())
+                .filter(sub -> !sub.getCustomerId().equals(customerId))
+                .ifPresent(
+                        sub -> {
+                            subscriptionRepository.delete(sub);
+                            subscriptionRepository.flush();
+                        });
+
         subscriptionRepository
                 .findByCustomerId(customerId)
                 .ifPresentOrElse(
