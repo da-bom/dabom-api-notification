@@ -7,7 +7,7 @@ import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
 import java.util.List;
 
-import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jose4j.lang.JoseException;
@@ -123,19 +123,22 @@ public class WebPushServiceImpl implements WebPushService {
                             new nl.martijndwars.webpush.Subscription.Keys(
                                     subscription.getP256dh(), subscription.getAuth()));
             Notification notification = new Notification(sub, message);
-            HttpResponse response =
-                    pushHttpClient.execute(
-                            pushService.preparePost(notification, Encoding.AES128GCM));
-
-            log.info(
-                    "Push message sent with status code: {}",
-                    response.getStatusLine().getStatusCode());
-            String body =
-                    response.getEntity() != null ? EntityUtils.toString(response.getEntity()) : "";
-            log.info(
-                    "Push response status={}, body={}",
-                    response.getStatusLine(),
-                    body.replaceAll("[\\r\\n]", "_"));
+            try (CloseableHttpResponse response =
+                    (CloseableHttpResponse)
+                            pushHttpClient.execute(
+                                    pushService.preparePost(notification, Encoding.AES128GCM))) {
+                log.info(
+                        "Push message sent with status code: {}",
+                        response.getStatusLine().getStatusCode());
+                String body =
+                        response.getEntity() != null
+                                ? EntityUtils.toString(response.getEntity())
+                                : "";
+                log.info(
+                        "Push response status={}, body={}",
+                        response.getStatusLine(),
+                        body.replaceAll("[\\r\\n]", "_"));
+            }
         } catch (GeneralSecurityException | IOException | JoseException e) {
             log.error("Failed to send push notification", e);
             throw new ApplicationException(SubscriptionErrorCode.PUSH_SEND_FAILED);

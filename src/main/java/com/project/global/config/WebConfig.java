@@ -73,7 +73,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Bean
     public PushService pushService() throws GeneralSecurityException {
-        Security.addProvider(new BouncyCastleProvider());
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
         return new PushService(vapidPublicKey, vapidPrivateKey);
     }
 }
