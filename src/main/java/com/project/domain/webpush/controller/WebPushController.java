@@ -1,5 +1,7 @@
 package com.project.domain.webpush.controller;
 
+import jakarta.validation.Valid;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,14 +32,17 @@ public class WebPushController {
 
     @PostMapping("/subscribe")
     public ApiResponse<Void> subscribe(
-            @CustomerId Long customerId, @RequestBody PushSubscriptionRequest subscriptionRequest) {
+            @CustomerId Long customerId,
+            @Valid @RequestBody PushSubscriptionRequest subscriptionRequest) {
         webPushService.subscribe(subscriptionRequest, customerId);
         return ApiResponse.created(null);
     }
 
     @PostMapping("/send")
-    public ApiResponse<Void> sendPushMessage(@RequestBody String message) {
-        log.info("Sending push message: {}", message.replaceAll("[\\r\\n]", "_"));
+    public ApiResponse<Void> sendPushMessage(
+            @CustomerId Long customerId, @RequestBody String message) {
+        log.info("Push message send requested for customerId={}", customerId);
+        webPushService.sendToUser(customerId, message);
         return ApiResponse.success(null);
     }
 }

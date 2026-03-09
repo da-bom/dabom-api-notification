@@ -2,7 +2,11 @@ package com.project.domain.webpush.controller.dto;
 
 import java.util.Map;
 
-public record PushSubscriptionRequest(String endpoint, Map<String, String> keys) {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public record PushSubscriptionRequest(
+        @NotBlank String endpoint, @NotNull Map<String, String> keys) {
 
     public static final String P256DH_KEY = "p256dh";
     public static final String AUTH_KEY = "auth";
