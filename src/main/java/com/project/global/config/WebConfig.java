@@ -77,7 +77,10 @@ public class WebConfig implements WebMvcConfigurer {
                         .setConnectTimeout(pushConnectTimeout)
                         .setSocketTimeout(pushSocketTimeout)
                         .build();
-        return HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
+        return HttpClientBuilder.create()
+                .setDefaultRequestConfig(requestConfig)
+                .disableRedirectHandling()
+                .build();
     }
 
     @Bean

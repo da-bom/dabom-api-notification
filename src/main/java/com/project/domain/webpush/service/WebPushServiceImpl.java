@@ -107,7 +107,8 @@ public class WebPushServiceImpl implements WebPushService {
             InetAddress address = InetAddress.getByName(uri.getHost());
             if (address.isLoopbackAddress()
                     || address.isLinkLocalAddress()
-                    || address.isSiteLocalAddress()) {
+                    || address.isSiteLocalAddress()
+                    || address.isAnyLocalAddress()) {
                 throw new ApplicationException(SubscriptionErrorCode.INVALID_ENDPOINT_URL);
             }
         } catch (IllegalArgumentException | UnknownHostException e) {
