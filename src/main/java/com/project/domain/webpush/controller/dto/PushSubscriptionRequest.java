@@ -1,4 +1,4 @@
-package com.project.webpushsample.controller.dto;
+package com.project.domain.webpush.controller.dto;
 
 import java.util.Map;
 

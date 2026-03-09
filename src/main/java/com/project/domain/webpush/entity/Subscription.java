@@ -1,4 +1,4 @@
-package com.project.webpushsample.domain;
+package com.project.domain.webpush.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

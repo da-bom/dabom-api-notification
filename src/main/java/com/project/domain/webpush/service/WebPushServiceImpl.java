@@ -1,15 +1,15 @@
-package com.project.webpushsample.service;
+package com.project.domain.webpush.service;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
+import com.project.domain.webpush.entity.Subscription;
+import com.project.domain.webpush.repository.SubscriptionRepository;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.SubscriptionErrorCode;
-import com.project.webpushsample.controller.dto.PushSubscriptionRequest;
-import com.project.webpushsample.domain.Subscription;
-import com.project.webpushsample.repository.SubscriptionRepository;
 
 import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.Notification;

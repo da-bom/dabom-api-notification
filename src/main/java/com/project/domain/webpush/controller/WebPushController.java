@@ -1,14 +1,14 @@
-package com.project.webpushsample.controller;
+package com.project.domain.webpush.controller;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
+import com.project.domain.webpush.service.WebPushService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
-import com.project.webpushsample.controller.dto.PushSubscriptionRequest;
-import com.project.webpushsample.service.WebPushService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
