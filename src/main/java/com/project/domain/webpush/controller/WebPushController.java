@@ -1,5 +1,8 @@
 package com.project.domain.webpush.controller;
 
+import java.util.Map;
+
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +24,11 @@ public class WebPushController {
 
     private final WebPushService webPushService;
 
+    @GetMapping("/vapid-public-key")
+    public ApiResponse<Map<String, String>> getVapidPublicKey() {
+        return ApiResponse.success(Map.of("publicKey", webPushService.getVapidPublicKey()));
+    }
+
     @PostMapping("/subscribe")
     public ApiResponse<Void> subscribe(
             @CustomerId Long customerId, @RequestBody PushSubscriptionRequest subscriptionRequest) {
@@ -30,7 +38,7 @@ public class WebPushController {
 
     @PostMapping("/send")
     public ApiResponse<Void> sendPushMessage(@RequestBody String message) {
-        log.info("Sending push message: {}", message);
+        log.info("Sending push message: {}", message.replaceAll("[\\r\\n]", "_"));
         return ApiResponse.success(null);
     }
 }

@@ -11,6 +11,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jose4j.lang.JoseException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +39,9 @@ public class WebPushServiceImpl implements WebPushService {
     private final FamilyMemberRepository familyMemberRepository;
     private final PushService pushService;
     private final CloseableHttpClient pushHttpClient;
+
+    @Value("${vapid.key.public}")
+    private String vapidPublicKey;
 
     @Transactional
     @Override
@@ -89,6 +93,11 @@ public class WebPushServiceImpl implements WebPushService {
         subscriptions.forEach(subscription -> sendPushNotification(subscription, message));
     }
 
+    @Override
+    public String getVapidPublicKey() {
+        return vapidPublicKey;
+    }
+
     private void validateEndpointUrl(String endpoint) {
         try {
             URI uri = URI.create(endpoint);
@@ -123,7 +132,10 @@ public class WebPushServiceImpl implements WebPushService {
                     response.getStatusLine().getStatusCode());
             String body =
                     response.getEntity() != null ? EntityUtils.toString(response.getEntity()) : "";
-            log.info("Push response status={}, body={}", response.getStatusLine(), body);
+            log.info(
+                    "Push response status={}, body={}",
+                    response.getStatusLine(),
+                    body.replaceAll("[\\r\\n]", "_"));
         } catch (GeneralSecurityException | IOException | JoseException e) {
             log.error("Failed to send push notification", e);
             throw new ApplicationException(SubscriptionErrorCode.PUSH_SEND_FAILED);

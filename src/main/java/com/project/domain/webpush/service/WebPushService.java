@@ -9,4 +9,6 @@ public interface WebPushService {
     void sendToUser(Long customerId, String message);
 
     void sendToFamily(Long familyId, String message);
+
+    String getVapidPublicKey();
 }
