@@ -22,6 +22,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import com.project.global.auth.JwtTokenUtil;
 import com.project.global.auth.LoginInterceptor;
 import com.project.global.auth.aop.CustomerArgumentResolver;
+import com.project.global.util.NetworkValidator;
 
 import nl.martijndwars.webpush.PushService;
 
@@ -85,10 +86,7 @@ public class WebConfig implements WebMvcConfigurer {
                 host -> {
                     InetAddress[] addresses = InetAddress.getAllByName(host);
                     for (InetAddress addr : addresses) {
-                        if (addr.isLoopbackAddress()
-                                || addr.isLinkLocalAddress()
-                                || addr.isSiteLocalAddress()
-                                || addr.isAnyLocalAddress()) {
+                        if (NetworkValidator.isInternalAddress(addr)) {
                             throw new UnknownHostException("Blocked internal address: " + host);
                         }
                     }

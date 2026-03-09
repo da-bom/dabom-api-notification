@@ -23,6 +23,7 @@ import com.project.domain.webpush.entity.Subscription;
 import com.project.domain.webpush.repository.SubscriptionRepository;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.SubscriptionErrorCode;
+import com.project.global.util.NetworkValidator;
 
 import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.Notification;
@@ -106,10 +107,7 @@ public class WebPushServiceImpl implements WebPushService {
                 throw new ApplicationException(SubscriptionErrorCode.INVALID_ENDPOINT_URL);
             }
             InetAddress address = InetAddress.getByName(uri.getHost());
-            if (address.isLoopbackAddress()
-                    || address.isLinkLocalAddress()
-                    || address.isSiteLocalAddress()
-                    || address.isAnyLocalAddress()) {
+            if (NetworkValidator.isInternalAddress(address)) {
                 throw new ApplicationException(SubscriptionErrorCode.INVALID_ENDPOINT_URL);
             }
         } catch (IllegalArgumentException | UnknownHostException e) {
