@@ -43,4 +43,10 @@ public class Subscription extends BaseEntity {
         this.auth = auth;
         this.customerId = customerId;
     }
+
+    public void updateSubscription(String endpoint, String p256dh, String auth) {
+        this.endpoint = endpoint;
+        this.p256dh = p256dh;
+        this.auth = auth;
+    }
 }

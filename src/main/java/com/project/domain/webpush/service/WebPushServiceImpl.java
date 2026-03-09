@@ -1,9 +1,14 @@
 package com.project.domain.webpush.service;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
-import org.springframework.beans.factory.annotation.Value;
+import org.jose4j.lang.JoseException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
 import com.project.domain.webpush.entity.Subscription;
@@ -23,29 +28,31 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class WebPushServiceImpl implements WebPushService {
 
-    @Value("${vapid.key.public}")
-    private String vapidPublicKey;
-
     private final SubscriptionRepository subscriptionRepository;
     private final PushService pushService;
 
+    @Transactional
     @Override
     public void subscribe(PushSubscriptionRequest request, Long customerId) {
-        Subscription subscription =
-                Subscription.builder()
-                        .endpoint(request.endpoint())
-                        .p256dh(request.keys().get("p256dh"))
-                        .auth(request.keys().get("auth"))
-                        .customerId(customerId)
-                        .build();
-        subscriptionRepository.save(subscription);
+        subscriptionRepository
+                .findByCustomerId(customerId)
+                .ifPresentOrElse(
+                        existing ->
+                                existing.updateSubscription(
+                                        request.endpoint(), request.p256dh(), request.authKey()),
+                        () -> {
+                            Subscription subscription =
+                                    Subscription.builder()
+                                            .endpoint(request.endpoint())
+                                            .p256dh(request.p256dh())
+                                            .auth(request.authKey())
+                                            .customerId(customerId)
+                                            .build();
+                            subscriptionRepository.save(subscription);
+                        });
     }
 
-    @Override
-    public String getVapidPublicKey() {
-        return vapidPublicKey;
-    }
-
+    @Transactional(readOnly = true)
     @Override
     public void sendToUser(Long customerId, String message) {
         Subscription subscription =
@@ -59,6 +66,7 @@ public class WebPushServiceImpl implements WebPushService {
         sendPushNotification(subscription, message);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public void sendToFamily(Long familyId, String message) {
         Subscription subscription =
@@ -88,7 +96,11 @@ public class WebPushServiceImpl implements WebPushService {
             String body =
                     response.getEntity() != null ? EntityUtils.toString(response.getEntity()) : "";
             log.info("Push response status={}, body={}", response.getStatusLine(), body);
-        } catch (Exception e) {
+        } catch (GeneralSecurityException
+                | IOException
+                | JoseException
+                | ExecutionException
+                | InterruptedException e) {
             log.error("Failed to send push notification", e);
             throw new ApplicationException(SubscriptionErrorCode.PUSH_SEND_FAILED);
         }
