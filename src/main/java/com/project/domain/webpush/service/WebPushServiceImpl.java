@@ -1,15 +1,16 @@
 package com.project.domain.webpush.service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.List;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
 import org.jose4j.lang.JoseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -131,10 +132,12 @@ public class WebPushServiceImpl implements WebPushService {
                 log.info(
                         "Push message sent with status code: {}",
                         response.getStatusLine().getStatusCode());
-                String body =
-                        response.getEntity() != null
-                                ? EntityUtils.toString(response.getEntity())
-                                : "";
+                String body = "";
+                if (response.getEntity() != null) {
+                    try (InputStream is = response.getEntity().getContent()) {
+                        body = new String(is.readNBytes(1024), StandardCharsets.UTF_8);
+                    }
+                }
                 log.info(
                         "Push response status={}, body={}",
                         response.getStatusLine(),

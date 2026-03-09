@@ -1,10 +1,13 @@
 package com.project.global.config;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.security.GeneralSecurityException;
 import java.security.Security;
 import java.util.List;
 
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.conn.DnsResolver;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -77,9 +80,25 @@ public class WebConfig implements WebMvcConfigurer {
                         .setConnectTimeout(pushConnectTimeout)
                         .setSocketTimeout(pushSocketTimeout)
                         .build();
+
+        DnsResolver ssrfSafeDnsResolver =
+                host -> {
+                    InetAddress[] addresses = InetAddress.getAllByName(host);
+                    for (InetAddress addr : addresses) {
+                        if (addr.isLoopbackAddress()
+                                || addr.isLinkLocalAddress()
+                                || addr.isSiteLocalAddress()
+                                || addr.isAnyLocalAddress()) {
+                            throw new UnknownHostException("Blocked internal address: " + host);
+                        }
+                    }
+                    return addresses;
+                };
+
         return HttpClientBuilder.create()
                 .setDefaultRequestConfig(requestConfig)
                 .disableRedirectHandling()
+                .setDnsResolver(ssrfSafeDnsResolver)
                 .build();
     }
 
