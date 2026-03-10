@@ -7,9 +7,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import com.dabom.messaging.kafka.event.dto.usage.UsageRealtimePayload;
 import com.project.domain.usagerecord.dto.response.RealtimeTotalUsageResponse;
 import com.project.domain.usagerecord.dto.response.RealtimeUsageByMemberResponse;
-import com.project.global.event.dto.usage.UsageRealtimePayload;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +40,7 @@ public class SsePublisher {
 
             if (!publishedDateTime.isAfter(current)) {
                 log.info(
-                        "🎯drop older total event: familyId={}, incoming={}, last={}",
+                        "drop older total event: familyId={}, incoming={}, last={}",
                         familyId,
                         publishedDateTime,
                         current);
@@ -65,9 +65,8 @@ public class SsePublisher {
     // 1) 가족별 멤버 사용량 이벤트의 최신 시각을 CAS로 보장합니다.
     // 2) 최신 이벤트만 멤버 단위 응답으로 변환해 SSE로 전송합니다.
     @Async
-    public void pushMemberUsageBytes(
-            UsageRealtimePayload payload, LocalDateTime publishedDateTime) {
-        log.info("🎯pushMemberusageBytes thread : {}", Thread.currentThread().getName());
+    public void pushMemberUsageBytes(UsageRealtimePayload payload, LocalDateTime publishedDateTime) {
+        log.info("pushMemberUsageBytes thread : {}", Thread.currentThread().getName());
 
         Long familyId = payload.familyId();
         Long customerId = payload.customerId();
@@ -78,8 +77,7 @@ public class SsePublisher {
 
             if (!publishedDateTime.isAfter(current)) {
                 log.info(
-                        "🎯drop older member event: familyId={}, customerId={}, incoming={},"
-                                + " last={}",
+                        "drop older member event: familyId={}, customerId={}, incoming={}, last={}",
                         familyId,
                         customerId,
                         publishedDateTime,

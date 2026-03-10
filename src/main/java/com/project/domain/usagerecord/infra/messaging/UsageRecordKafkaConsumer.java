@@ -6,13 +6,14 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.dabom.messaging.kafka.contract.KafkaEventTypes;
+import com.dabom.messaging.kafka.contract.KafkaTopics;
+import com.dabom.messaging.kafka.event.KafkaEventMessageSupport;
+import com.dabom.messaging.kafka.event.dto.EventEnvelope;
+import com.dabom.messaging.kafka.event.dto.usage.UsageRealtimePayload;
+import com.project.domain.usagerecord.infra.messaging.config.UsageRealtimeBroadcastKafkaConfig;
 import com.project.domain.usagerecord.infra.sse.SsePublisher;
-import com.project.global.config.KafkaConfig;
-import com.project.global.event.dto.EventEnvelope;
-import com.project.global.event.dto.usage.UsageRealtimePayload;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,32 +23,30 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class UsageRecordKafkaConsumer {
 
-    private static final String TOPIC_USAGE_REALTIME = "usage-realtime";
-
-    private final ObjectMapper objectMapper;
+    private final KafkaEventMessageSupport kafkaEventMessageSupport;
     private final SsePublisher ssePublisher;
 
     @KafkaListener(
-            topics = TOPIC_USAGE_REALTIME,
-            containerFactory = KafkaConfig.BROADCAST_KAFKA_LISTENER_CONTAINER_FACTORY)
+            topics = KafkaTopics.USAGE_REALTIME,
+            containerFactory =
+                    UsageRealtimeBroadcastKafkaConfig
+                            .USAGE_REALTIME_BROADCAST_KAFKA_LISTENER_CONTAINER_FACTORY)
     public void consume(ConsumerRecord<String, String> record) {
-        try {
-            EventEnvelope<UsageRealtimePayload> envelope =
-                    objectMapper.readValue(
-                            record.value(),
-                            new TypeReference<EventEnvelope<UsageRealtimePayload>>() {});
+        kafkaEventMessageSupport.consumeByEventType(
+                record,
+                KafkaEventTypes.USAGE_REALTIME,
+                new TypeReference<EventEnvelope<UsageRealtimePayload>>() {},
+                (envelope, key) -> {
+                    UsageRealtimePayload payload = envelope.payload();
+                    LocalDateTime publishTime = envelope.timestamp();
 
-            UsageRealtimePayload payload = envelope.payload();
-            LocalDateTime publishTime = envelope.timestamp();
+                    log.info(
+                            "FamilyId:{}, totalUsedBytes:{}",
+                            payload.familyId(),
+                            payload.totalUsedBytes());
 
-            log.info(
-                    "FamilyId:{}, totalUsedBytes:{}", payload.familyId(), payload.totalUsedBytes());
-
-            ssePublisher.pushMemberUsageBytes(payload, publishTime);
-            ssePublisher.pushTotalUsageBytes(payload, publishTime);
-
-        } catch (JsonProcessingException e) {
-            log.error("JSON 파싱 실패", e);
-        }
+                    ssePublisher.pushMemberUsageBytes(payload, publishTime);
+                    ssePublisher.pushTotalUsageBytes(payload, publishTime);
+                });
     }
 }

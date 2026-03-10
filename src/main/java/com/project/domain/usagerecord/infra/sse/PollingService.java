@@ -7,8 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.dabom.messaging.kafka.event.dto.usage.UsageRealtimePayload;
 import com.project.domain.family.infra.cache.FamilyCacheRepository;
-import com.project.global.event.dto.usage.UsageRealtimePayload;
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,20 +16,18 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PollingService {
 
+    private static final long HEARTBEAT_DELAY_MS = 25_000L;
+
     private final EmitterRegistry emitterRegistry;
     private final FamilyCacheRepository familyCacheRepository;
     private final ConcurrentHashMap<Long, Long> lastSeen = new ConcurrentHashMap<>();
     private final SsePublisher ssePublisher;
 
-    private static final long HEARTBEAT_DELAY_MS = 25_000L;
-
     // 1) 활성 familyId를 순회하며 최신 잔여 용량을 조회합니다.
     // 2) 이전 값과 다를 때만 페이로드를 생성해 SSE로 전송합니다.
     @Scheduled(fixedDelay = 1000)
     public void pollAndPushIfChanged() {
-
         for (Long familyId : emitterRegistry.activeFamilyIds()) {
-
             Optional<Long> latestOpt = familyCacheRepository.findFamilyRemainingBytes(familyId);
             if (latestOpt.isEmpty()) {
                 lastSeen.remove(familyId);
