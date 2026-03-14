@@ -2,6 +2,7 @@ package com.project.domain.notification.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -32,6 +33,7 @@ import com.project.domain.notification.entity.NotificationLog;
 import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
 import com.project.domain.webpush.service.WebPushService;
+import com.project.global.exception.ApplicationException;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("NotificationServiceImpl 단위 테스트")
@@ -163,6 +165,22 @@ class NotificationServiceImplTest {
                     .doesNotThrowAnyException();
 
             verify(notificationLogRepository).save(any(NotificationLog.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("serializePayload 실패")
+    class SerializePayloadFailure {
+
+        @Test
+        @DisplayName("직렬화 실패 시 ApplicationException 발생")
+        void throwsApplicationException() throws JsonProcessingException {
+            ThresholdAlertPayload payload = new ThresholdAlertPayload(FAMILY_ID, 50, "데이터 50% 사용");
+            when(objectMapper.writeValueAsString(payload))
+                    .thenThrow(new JsonProcessingException("serialize error") {});
+
+            assertThatThrownBy(() -> notificationService.handleThresholdAlert(payload, SENT_AT))
+                    .isInstanceOf(ApplicationException.class);
         }
     }
 }

@@ -15,6 +15,8 @@ import com.project.domain.notification.entity.NotificationLog;
 import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
 import com.project.domain.webpush.service.WebPushService;
+import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.NotificationErrorCode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -95,7 +97,7 @@ public class NotificationServiceImpl implements NotificationService {
             return objectMapper.writeValueAsString(payload);
         } catch (JsonProcessingException e) {
             log.error("Payload 직렬화 실패", e);
-            return null;
+            throw new ApplicationException(NotificationErrorCode.NOTIFICATION_SAVE_FAILED);
         }
     }
 }
