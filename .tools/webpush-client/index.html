@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Push Test Client</title>
+    <style>
+      :root {
+        --bg: #0c1222;
+        --panel: #121a2f;
+        --line: #273556;
+        --text: #d8e1ff;
+        --muted: #8ca0d0;
+        --accent: #65d1ff;
+        --ok: #3ddc97;
+        --err: #ff7a7a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "SF Mono", Menlo, Consolas, monospace;
+        background: radial-gradient(circle at 10% 10%, #182649, var(--bg) 45%);
+        color: var(--text);
+      }
+
+      .container {
+        width: min(980px, 92vw);
+        margin: 28px auto;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--panel), black 8%);
+      }
+
+      h1 {
+        margin: 0 0 18px;
+        font-size: 22px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .field label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      input,
+      select,
+      textarea,
+      button {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #0c1222;
+        color: var(--text);
+        padding: 10px 12px;
+        font: inherit;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 68px;
+        resize: vertical;
+      }
+
+      button {
+        cursor: pointer;
+        background: linear-gradient(180deg, #1a2848, #14203a);
+      }
+
+      button:hover {
+        border-color: var(--accent);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .stack {
+        margin-top: 16px;
+      }
+
+      .line {
+        margin: 0;
+        padding: 6px 0;
+        border-bottom: 1px dashed #25365a;
+      }
+
+      .ok {
+        color: var(--ok);
+      }
+
+      .err {
+        color: var(--err);
+      }
+
+      @media (max-width: 840px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Web Push Test Client</h1>
+
+      <section class="grid">
+        <div class="field">
+          <label for="baseUrl">Backend base URL</label>
+          <input id="baseUrl" value="http://localhost:8080" />
+        </div>
+        <div class="field">
+          <label for="jwtSecret">JWT secret (for local test token)</label>
+          <input
+            id="jwtSecret"
+            value=""
+          />
+        </div>
+        <div class="field">
+          <label for="memberId">memberId (JWT subject)</label>
+          <input id="memberId" value="1" />
+        </div>
+        <div class="field">
+          <label for="role">role</label>
+          <select id="role">
+            <option value="ADMIN">ADMIN</option>
+            <option value="OWNER">OWNER</option>
+            <option value="MEMBER" selected>MEMBER</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="expiresMin">token expiration (minutes)</label>
+          <input id="expiresMin" value="120" />
+        </div>
+        <div class="field">
+          <label for="token">Bearer token</label>
+          <input id="token" placeholder="Click 'Generate token' or paste your token" />
+        </div>
+      </section>
+
+      <div class="actions">
+        <button id="generateTokenBtn">Generate token</button>
+        <button id="registerSwBtn">Register service worker</button>
+        <button id="requestPermissionBtn">Request notification permission</button>
+        <button id="subscribeBtn">Subscribe</button>
+      </div>
+
+      <section class="stack">
+        <div class="field">
+          <label for="message">Push message</label>
+          <textarea id="message">hello from webpush-client</textarea>
+        </div>
+        <div class="actions">
+          <button id="sendBtn">Send push</button>
+          <button id="clearLogBtn">Clear log</button>
+        </div>
+      </section>
+
+      <section class="stack">
+        <div id="log"></div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

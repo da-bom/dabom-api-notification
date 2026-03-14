@@ -75,3 +75,12 @@ management:
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+
+vapid:
+  key:
+    public: ${VAPID_PUBLIC_KEY}
+    private: ${VAPID_PRIVATE_KEY}
+
+push-client:
+  connect-timeout: ${PUSH_CLIENT_CONNECT_TIMEOUT:5000}
+  socket-timeout: ${PUSH_CLIENT_SOCKET_TIMEOUT:5000}

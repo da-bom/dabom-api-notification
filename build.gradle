@@ -87,6 +87,13 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
     testRuntimeOnly 'com.h2database:h2'
+
+    //pwa
+    implementation 'nl.martijndwars:web-push:5.1.2'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.14'
+    implementation 'org.apache.httpcomponents:httpcore:4.4.14'
+    implementation 'org.bitbucket.b_c:jose4j:0.9.6'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.83'
 }
 
 // ============================================================================
