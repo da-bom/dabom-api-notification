@@ -18,6 +18,10 @@ public class LoginInterceptor implements HandlerInterceptor {
             HttpServletRequest request, HttpServletResponse response, Object handler)
             throws IOException {
 
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
         try {
             final String token = AuthorizationExtractor.extract(request);
             jwtTokenUtil.verify(token);
