@@ -59,7 +59,7 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             webPushService.sendToFamily(familyId, message);
         } catch (Exception e) {
-            log.warn("ThresholdAlert 푸시 전송 실패 familyId={}: {}", familyId, e.getMessage());
+            log.warn("ThresholdAlert 푸시 전송 실패 familyId={}", familyId, e);
         }
     }
 
@@ -86,7 +86,7 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             webPushService.sendToUser(customerId, message);
         } catch (Exception e) {
-            log.warn("CustomerBlocked 푸시 전송 실패 customerId={}: {}", customerId, e.getMessage());
+            log.warn("CustomerBlocked 푸시 전송 실패 customerId={}", customerId, e);
         }
     }
 
@@ -94,7 +94,7 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             return objectMapper.writeValueAsString(payload);
         } catch (JsonProcessingException e) {
-            log.error("Payload 직렬화 실패: {}", e.getMessage());
+            log.error("Payload 직렬화 실패", e);
             return null;
         }
     }
