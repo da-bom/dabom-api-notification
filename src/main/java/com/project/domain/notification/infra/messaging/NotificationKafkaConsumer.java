@@ -66,6 +66,7 @@ public class NotificationKafkaConsumer {
                         envelope.payload().familyId());
                 notificationService.handleCustomerBlocked(envelope.payload(), envelope.timestamp());
             }
+            default -> log.warn("미지원 notification subType: {}", subType);
         }
     }
 }
