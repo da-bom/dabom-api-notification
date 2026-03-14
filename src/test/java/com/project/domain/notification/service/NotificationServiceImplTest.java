@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.dabom.messaging.kafka.event.dto.notification.CustomerBlockedPayload;
 import com.dabom.messaging.kafka.event.dto.notification.ThresholdAlertPayload;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.notification.entity.NotificationLog;
@@ -50,6 +51,11 @@ class NotificationServiceImplTest {
     private static final Long CUSTOMER_ID_1 = 10L;
     private static final Long CUSTOMER_ID_2 = 11L;
     private static final LocalDateTime SENT_AT = LocalDateTime.of(2026, 3, 14, 12, 0, 0);
+    private static final String THRESHOLD_PAYLOAD_JSON =
+            "{\"familyId\":1,\"thresholdPercent\":50,\"message\":\"데이터 50% 사용\"}";
+    private static final String BLOCKED_PAYLOAD_JSON =
+            "{\"familyId\":1,\"customerId\":10,\"blockReason\":\"MONTHLY_LIMIT_EXCEEDED\","
+                    + "\"blockedAt\":\"2026-03-14T12:00\"}";
 
     @Nested
     @DisplayName("handleThresholdAlert")
@@ -57,10 +63,11 @@ class NotificationServiceImplTest {
 
         @Test
         @DisplayName("가족 구성원 수만큼 NotificationLog 생성 후 sendToFamily 호출")
-        void createsLogsForAllFamilyMembers() {
+        void createsLogsForAllFamilyMembers() throws JsonProcessingException {
             ThresholdAlertPayload payload = new ThresholdAlertPayload(FAMILY_ID, 50, "데이터 50% 사용");
             when(familyMemberRepository.findCustomerIdsByFamilyId(FAMILY_ID))
                     .thenReturn(List.of(CUSTOMER_ID_1, CUSTOMER_ID_2));
+            when(objectMapper.writeValueAsString(payload)).thenReturn(THRESHOLD_PAYLOAD_JSON);
 
             notificationService.handleThresholdAlert(payload, SENT_AT);
 
@@ -79,6 +86,7 @@ class NotificationServiceImplTest {
                                 assertThat(log.getType())
                                         .isEqualTo(NotificationType.THRESHOLD_ALERT);
                                 assertThat(log.getMessage()).isEqualTo("데이터 50% 사용");
+                                assertThat(log.getPayload()).isEqualTo(THRESHOLD_PAYLOAD_JSON);
                                 assertThat(log.getSentAt()).isEqualTo(SENT_AT);
                                 assertThat(log.isRead()).isFalse();
                             });
@@ -121,10 +129,11 @@ class NotificationServiceImplTest {
 
         @Test
         @DisplayName("차단된 고객에게 NotificationLog 1건 생성 후 sendToUser 호출")
-        void createsLogAndSendsPush() {
+        void createsLogAndSendsPush() throws JsonProcessingException {
             CustomerBlockedPayload payload =
                     new CustomerBlockedPayload(
                             FAMILY_ID, CUSTOMER_ID_1, "MONTHLY_LIMIT_EXCEEDED", "2026-03-14T12:00");
+            when(objectMapper.writeValueAsString(payload)).thenReturn(BLOCKED_PAYLOAD_JSON);
 
             notificationService.handleCustomerBlocked(payload, SENT_AT);
 
@@ -134,6 +143,7 @@ class NotificationServiceImplTest {
             assertThat(saved.getFamilyId()).isEqualTo(FAMILY_ID);
             assertThat(saved.getType()).isEqualTo(NotificationType.BLOCKED);
             assertThat(saved.getMessage()).contains("MONTHLY_LIMIT_EXCEEDED");
+            assertThat(saved.getPayload()).isEqualTo(BLOCKED_PAYLOAD_JSON);
             assertThat(saved.getSentAt()).isEqualTo(SENT_AT);
             assertThat(saved.isRead()).isFalse();
             verify(webPushService).sendToUser(eq(CUSTOMER_ID_1), anyString());
