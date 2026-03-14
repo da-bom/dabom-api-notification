@@ -24,6 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
+    private static final String BLOCKED_MESSAGE_FORMAT = "데이터 사용이 차단되었습니다. 사유: %s";
+
     private final NotificationLogRepository notificationLogRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final WebPushService webPushService;
@@ -67,7 +69,7 @@ public class NotificationServiceImpl implements NotificationService {
         String payloadJson = serializePayload(payload);
         Long customerId = payload.customerId();
         Long familyId = payload.familyId();
-        String message = "데이터 사용이 차단되었습니다. 사유: " + payload.blockReason();
+        String message = String.format(BLOCKED_MESSAGE_FORMAT, payload.blockReason());
 
         NotificationLog notificationLog =
                 NotificationLog.builder()
