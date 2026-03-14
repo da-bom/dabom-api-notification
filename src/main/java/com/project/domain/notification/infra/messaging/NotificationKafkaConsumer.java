@@ -28,9 +28,9 @@ public class NotificationKafkaConsumer {
     private final NotificationService notificationService;
 
     @KafkaListener(topics = KafkaTopics.NOTIFICATION)
-    public void consume(ConsumerRecord<String, String> record) {
+    public void consume(ConsumerRecord<String, String> consumerRecord) {
         try {
-            JsonNode tree = kafkaEventMessageSupport.readTree(record.value());
+            JsonNode tree = kafkaEventMessageSupport.readTree(consumerRecord.value());
             String eventType = kafkaEventMessageSupport.extractEventType(tree);
 
             if (!KafkaEventTypes.NOTIFICATION.equals(eventType)) {

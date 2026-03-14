@@ -66,8 +66,13 @@ class NotificationServiceImplTest {
 
             verify(notificationLogRepository).saveAll(logsCaptor.capture());
             List<NotificationLog> saved = logsCaptor.getValue();
-            assertThat(saved).hasSize(2);
             assertThat(saved)
+                    .hasSize(2)
+                    .satisfies(
+                            logs -> {
+                                assertThat(logs.get(0).getCustomerId()).isEqualTo(CUSTOMER_ID_1);
+                                assertThat(logs.get(1).getCustomerId()).isEqualTo(CUSTOMER_ID_2);
+                            })
                     .allSatisfy(
                             log -> {
                                 assertThat(log.getFamilyId()).isEqualTo(FAMILY_ID);
@@ -77,8 +82,6 @@ class NotificationServiceImplTest {
                                 assertThat(log.getSentAt()).isEqualTo(SENT_AT);
                                 assertThat(log.isRead()).isFalse();
                             });
-            assertThat(saved.get(0).getCustomerId()).isEqualTo(CUSTOMER_ID_1);
-            assertThat(saved.get(1).getCustomerId()).isEqualTo(CUSTOMER_ID_2);
             verify(webPushService).sendToFamily(FAMILY_ID, "데이터 50% 사용");
         }
 
