@@ -66,9 +66,6 @@ public class NotificationKafkaConsumer {
                         envelope.payload().familyId());
                 notificationService.handleCustomerBlocked(envelope.payload(), envelope.timestamp());
             }
-            case NotificationSubTypes.QUOTA_UPDATED ->
-                    log.debug("QuotaUpdated 이벤트 수신 — 알림 저장 대상 아님, 무시");
-            default -> log.warn("미지원 notification subType: {}", subType);
         }
     }
 }
