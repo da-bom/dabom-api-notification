@@ -33,6 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final WebPushService webPushService;
     private final SsePublisher ssePublisher;
     private final ObjectMapper objectMapper;
+    private final CursorUtil cursorUtil;
 
     @Transactional
     @Override
@@ -69,7 +70,7 @@ public class NotificationServiceImpl implements NotificationService {
             Boolean isRead,
             List<NotificationType> types) {
 
-        Long cursorId = CursorUtil.decode(cursor);
+        Long cursorId = cursorUtil.decode(cursor);
 
         List<NotificationLog> logs =
                 notificationLogRepository.findByCustomerIdWithCursor(
@@ -79,7 +80,7 @@ public class NotificationServiceImpl implements NotificationService {
         List<NotificationLog> content = hasNext ? logs.subList(0, size) : logs;
 
         String nextCursor =
-                hasNext ? CursorUtil.encode(content.get(content.size() - 1).getId()) : null;
+                hasNext ? cursorUtil.encode(content.get(content.size() - 1).getId()) : null;
 
         long unreadCount = notificationLogRepository.countUnread(customerId);
 
