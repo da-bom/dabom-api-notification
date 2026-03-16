@@ -2,13 +2,11 @@ package com.project.domain.webpush.controller;
 
 import jakarta.validation.Valid;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.project.domain.webpush.controller.dto.AdminPushRequest;
@@ -46,9 +44,9 @@ public class WebPushController {
     }
 
     @DeleteMapping("/subscribe")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void unsubscribe(@Parameter(hidden = true) @CustomerId Long customerId) {
+    public ApiResponse<Void> unsubscribe(@Parameter(hidden = true) @CustomerId Long customerId) {
         webPushService.unsubscribe(customerId);
+        return ApiResponse.success(null);
     }
 
     @AdminOnly

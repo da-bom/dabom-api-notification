@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
-import com.project.domain.notification.dto.NotificationListResponse;
-import com.project.domain.notification.dto.UnreadCountResponse;
+import com.project.domain.notification.dto.NotificationSlice;
+import com.project.domain.notification.dto.response.NotificationListResponse;
+import com.project.domain.notification.dto.response.NotificationResponse;
+import com.project.domain.notification.dto.response.UnreadCountResponse;
 import com.project.domain.notification.service.NotificationService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
@@ -35,14 +37,20 @@ public class NotificationController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Boolean isRead,
             @RequestParam(required = false) List<NotificationType> types) {
+        NotificationSlice slice =
+                notificationService.getNotifications(customerId, cursor, size, isRead, types);
+        List<NotificationResponse> responses =
+                slice.content().stream().map(NotificationResponse::from).toList();
         return ApiResponse.success(
-                notificationService.getNotifications(customerId, cursor, size, isRead, types));
+                new NotificationListResponse(
+                        responses, slice.nextCursor(), slice.hasNext(), slice.unreadCount()));
     }
 
     @GetMapping("/unread-count")
     public ApiResponse<UnreadCountResponse> getUnreadCount(
             @Parameter(hidden = true) @CustomerId Long customerId) {
-        return ApiResponse.success(notificationService.getUnreadCount(customerId));
+        long count = notificationService.getUnreadCount(customerId);
+        return ApiResponse.success(new UnreadCountResponse(count));
     }
 
     @PatchMapping("/{notificationId}/read")

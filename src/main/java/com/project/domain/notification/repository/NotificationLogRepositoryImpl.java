@@ -17,6 +17,7 @@ public class NotificationLogRepositoryImpl implements NotificationLogRepositoryC
     private final JPAQueryFactory queryFactory;
 
     private static final QNotificationLog n = QNotificationLog.notificationLog;
+    private static final int RETENTION_DAYS = 30;
 
     @Override
     public List<NotificationLog> findByCustomerIdWithCursor(
@@ -26,7 +27,7 @@ public class NotificationLogRepositoryImpl implements NotificationLogRepositoryC
             Boolean isRead,
             List<NotificationType> types) {
 
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(RETENTION_DAYS);
         BooleanBuilder where = new BooleanBuilder();
         where.and(n.customerId.eq(customerId));
         where.and(n.deletedAt.isNull());
@@ -52,7 +53,7 @@ public class NotificationLogRepositoryImpl implements NotificationLogRepositoryC
 
     @Override
     public long countUnread(Long customerId) {
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(RETENTION_DAYS);
 
         Long count =
                 queryFactory
@@ -70,7 +71,7 @@ public class NotificationLogRepositoryImpl implements NotificationLogRepositoryC
 
     @Override
     public void markAllAsRead(Long customerId) {
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(RETENTION_DAYS);
 
         queryFactory
                 .update(n)

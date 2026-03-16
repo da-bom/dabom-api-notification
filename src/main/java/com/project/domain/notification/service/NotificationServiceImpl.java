@@ -11,9 +11,7 @@ import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.family.repository.FamilyMemberRepository;
-import com.project.domain.notification.dto.NotificationListResponse;
-import com.project.domain.notification.dto.NotificationResponse;
-import com.project.domain.notification.dto.UnreadCountResponse;
+import com.project.domain.notification.dto.NotificationSlice;
 import com.project.domain.notification.entity.NotificationLog;
 import com.project.domain.notification.repository.NotificationLogRepository;
 import com.project.domain.usagerecord.infra.sse.SsePublisher;
@@ -64,7 +62,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Transactional(readOnly = true)
     @Override
-    public NotificationListResponse getNotifications(
+    public NotificationSlice getNotifications(
             Long customerId,
             String cursor,
             int size,
@@ -80,22 +78,18 @@ public class NotificationServiceImpl implements NotificationService {
         boolean hasNext = logs.size() > size;
         List<NotificationLog> content = hasNext ? logs.subList(0, size) : logs;
 
-        List<NotificationResponse> responses =
-                content.stream().map(NotificationResponse::from).toList();
-
         String nextCursor =
                 hasNext ? CursorUtil.encode(content.get(content.size() - 1).getId()) : null;
 
         long unreadCount = notificationLogRepository.countUnread(customerId);
 
-        return new NotificationListResponse(responses, nextCursor, hasNext, unreadCount);
+        return new NotificationSlice(content, nextCursor, hasNext, unreadCount);
     }
 
     @Transactional(readOnly = true)
     @Override
-    public UnreadCountResponse getUnreadCount(Long customerId) {
-        long count = notificationLogRepository.countUnread(customerId);
-        return new UnreadCountResponse(count);
+    public long getUnreadCount(Long customerId) {
+        return notificationLogRepository.countUnread(customerId);
     }
 
     @Transactional

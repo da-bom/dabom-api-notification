@@ -1,4 +1,4 @@
-package com.project.domain.notification.dto;
+package com.project.domain.notification.dto.response;
 
 import java.time.LocalDateTime;
 

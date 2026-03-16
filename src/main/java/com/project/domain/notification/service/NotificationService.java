@@ -5,17 +5,16 @@ import java.util.List;
 
 import com.dabom.messaging.kafka.event.dto.notification.NotificationPayload;
 import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
-import com.project.domain.notification.dto.NotificationListResponse;
-import com.project.domain.notification.dto.UnreadCountResponse;
+import com.project.domain.notification.dto.NotificationSlice;
 
 public interface NotificationService {
 
     void handleNotificationEvent(NotificationPayload payload, LocalDateTime sentAt);
 
-    NotificationListResponse getNotifications(
+    NotificationSlice getNotifications(
             Long customerId, String cursor, int size, Boolean isRead, List<NotificationType> types);
 
-    UnreadCountResponse getUnreadCount(Long customerId);
+    long getUnreadCount(Long customerId);
 
     void markAsRead(Long notificationId, Long customerId);
 
