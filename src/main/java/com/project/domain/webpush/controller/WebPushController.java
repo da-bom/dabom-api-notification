@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.project.domain.webpush.dto.request.AdminPushRequest;
 import com.project.domain.webpush.dto.request.PushSubscriptionRequest;
-import com.project.domain.webpush.dto.response.VapidPublicKey;
+import com.project.domain.webpush.dto.response.VapidPublicKeyResponse;
 import com.project.domain.webpush.service.WebPushService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.AdminOnly;
@@ -31,8 +31,8 @@ public class WebPushController {
     private final WebPushService webPushService;
 
     @GetMapping("/vapid-public-key")
-    public ApiResponse<VapidPublicKey> getVapidPublicKey() {
-        return ApiResponse.success(new VapidPublicKey(webPushService.getVapidPublicKey()));
+    public ApiResponse<VapidPublicKeyResponse> getVapidPublicKey() {
+        return ApiResponse.success(new VapidPublicKeyResponse(webPushService.getVapidPublicKey()));
     }
 
     @PostMapping("/subscribe")
