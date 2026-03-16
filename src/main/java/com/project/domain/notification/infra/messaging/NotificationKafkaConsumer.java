@@ -23,7 +23,7 @@ public class NotificationKafkaConsumer {
     private final KafkaEventMessageSupport kafkaEventMessageSupport;
     private final NotificationService notificationService;
 
-    @KafkaListener(topics = KafkaTopics.NOTIFICATION)
+    @KafkaListener(topics = KafkaTopics.NOTIFICATION, groupId = "${spring.kafka.consumer.group-id}")
     public void consume(ConsumerRecord<String, String> consumerRecord) {
         kafkaEventMessageSupport.consumeByEventType(
                 consumerRecord,
