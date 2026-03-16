@@ -15,10 +15,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "subscription")
+@Table(name = "push_subscription")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Subscription extends BaseEntity {
+public class PushSubscription extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,7 +37,7 @@ public class Subscription extends BaseEntity {
     private String auth;
 
     @Builder
-    public Subscription(String endpoint, String p256dh, String auth, Long customerId) {
+    public PushSubscription(String endpoint, String p256dh, String auth, Long customerId) {
         this.endpoint = endpoint;
         this.p256dh = p256dh;
         this.auth = auth;

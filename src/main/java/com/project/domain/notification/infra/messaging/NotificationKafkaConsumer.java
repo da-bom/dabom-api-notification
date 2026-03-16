@@ -8,13 +8,9 @@ import com.dabom.messaging.kafka.contract.KafkaEventTypes;
 import com.dabom.messaging.kafka.contract.KafkaTopics;
 import com.dabom.messaging.kafka.event.KafkaEventMessageSupport;
 import com.dabom.messaging.kafka.event.dto.EventEnvelope;
-import com.dabom.messaging.kafka.event.dto.notification.CustomerBlockedPayload;
-import com.dabom.messaging.kafka.event.dto.notification.NotificationSubTypes;
-import com.dabom.messaging.kafka.event.dto.notification.ThresholdAlertPayload;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.dabom.messaging.kafka.event.dto.notification.NotificationPayload;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.project.domain.notification.service.NotificationService;
+import com.project.domain.notification.service.NotificationEventService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,48 +21,21 @@ import lombok.extern.slf4j.Slf4j;
 public class NotificationKafkaConsumer {
 
     private final KafkaEventMessageSupport kafkaEventMessageSupport;
-    private final NotificationService notificationService;
+    private final NotificationEventService notificationEventService;
 
-    @KafkaListener(topics = KafkaTopics.NOTIFICATION)
+    @KafkaListener(topics = KafkaTopics.NOTIFICATION, groupId = "${spring.kafka.consumer.group-id}")
     public void consume(ConsumerRecord<String, String> consumerRecord) {
-        try {
-            JsonNode tree = kafkaEventMessageSupport.readTree(consumerRecord.value());
-            String eventType = kafkaEventMessageSupport.extractEventType(tree);
-
-            if (!KafkaEventTypes.NOTIFICATION.equals(eventType)) {
-                return;
-            }
-
-            String subType = tree.path("subType").asText();
-            dispatch(tree, subType);
-        } catch (JsonProcessingException e) {
-            log.error("Notification 이벤트 파싱 실패: {}", e.getMessage());
-        }
-    }
-
-    private void dispatch(JsonNode tree, String subType) {
-        switch (subType) {
-            case NotificationSubTypes.THRESHOLD_ALERT -> {
-                EventEnvelope<ThresholdAlertPayload> envelope =
-                        kafkaEventMessageSupport.convertToEnvelope(
-                                tree, new TypeReference<EventEnvelope<ThresholdAlertPayload>>() {});
-                log.info(
-                        "ThresholdAlert 수신 familyId={}, threshold={}%",
-                        envelope.payload().familyId(), envelope.payload().thresholdPercent());
-                notificationService.handleThresholdAlert(envelope.payload(), envelope.timestamp());
-            }
-            case NotificationSubTypes.CUSTOMER_BLOCKED -> {
-                EventEnvelope<CustomerBlockedPayload> envelope =
-                        kafkaEventMessageSupport.convertToEnvelope(
-                                tree,
-                                new TypeReference<EventEnvelope<CustomerBlockedPayload>>() {});
-                log.info(
-                        "CustomerBlocked 수신 customerId={}, familyId={}",
-                        envelope.payload().customerId(),
-                        envelope.payload().familyId());
-                notificationService.handleCustomerBlocked(envelope.payload(), envelope.timestamp());
-            }
-            default -> log.warn("미지원 notification subType: {}", subType);
-        }
+        kafkaEventMessageSupport.consumeByEventType(
+                consumerRecord,
+                KafkaEventTypes.NOTIFICATION,
+                new TypeReference<EventEnvelope<NotificationPayload>>() {},
+                (envelope, key) -> {
+                    log.info(
+                            "Notification 수신 type={}, familyId={}",
+                            envelope.payload().type(),
+                            envelope.payload().familyId());
+                    notificationEventService.handleNotificationEvent(
+                            envelope.payload(), envelope.timestamp());
+                });
     }
 }

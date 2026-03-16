@@ -1,14 +1,16 @@
 package com.project.domain.webpush.service;
 
-import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
+import com.project.domain.webpush.dto.request.PushSubscriptionRequest;
 
 public interface WebPushService {
 
     void subscribe(PushSubscriptionRequest request, Long customerId);
 
-    void sendToUser(Long customerId, String message);
+    void unsubscribe(Long customerId);
 
-    void sendToFamily(Long familyId, String message);
+    void sendToUser(Long customerId, String title, String message);
+
+    void sendToFamily(Long familyId, String title, String message);
 
     String getVapidPublicKey();
 }

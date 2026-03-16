@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
 import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;
@@ -38,6 +39,9 @@ public class NotificationLog extends BaseEntity {
     @Column(nullable = false)
     private NotificationType type;
 
+    @Column(name = "title", nullable = false, length = 100)
+    private String title;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
@@ -55,15 +59,21 @@ public class NotificationLog extends BaseEntity {
             Long customerId,
             Long familyId,
             NotificationType type,
+            String title,
             String message,
             String payload,
             LocalDateTime sentAt) {
         this.customerId = customerId;
         this.familyId = familyId;
         this.type = type;
+        this.title = title;
         this.message = message;
         this.payload = payload;
         this.isRead = false;
         this.sentAt = sentAt;
+    }
+
+    public void markAsRead() {
+        this.isRead = true;
     }
 }

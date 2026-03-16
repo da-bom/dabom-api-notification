@@ -18,6 +18,7 @@ import com.dabom.messaging.kafka.event.publisher.DefaultKafkaEventPublisher;
 import com.dabom.messaging.kafka.metrics.KafkaMetrics;
 import com.dabom.messaging.kafka.metrics.consumer.KafkaMetricsRecordInterceptor;
 import com.dabom.messaging.kafka.metrics.producer.KafkaMetricsProducerListener;
+import com.dabom.messaging.kafka.support.KafkaEventMetadataExtractor;
 import com.dabom.messaging.kafka.support.KafkaLogSanitizer;
 
 @Configuration
@@ -26,6 +27,7 @@ import com.dabom.messaging.kafka.support.KafkaLogSanitizer;
     KafkaErrorHandlerConfig.class,
     KafkaMetrics.class,
     KafkaExceptionClassifier.class,
+    KafkaEventMetadataExtractor.class,
     KafkaLogSanitizer.class,
     KafkaEventMessageSupport.class,
     KafkaMetricsRecordInterceptor.class,

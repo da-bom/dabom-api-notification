@@ -1,13 +1,20 @@
 package com.project.domain.notification.service;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
-import com.dabom.messaging.kafka.event.dto.notification.CustomerBlockedPayload;
-import com.dabom.messaging.kafka.event.dto.notification.ThresholdAlertPayload;
+import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
+import com.project.domain.notification.dto.NotificationSlice;
 
 public interface NotificationService {
 
-    void handleThresholdAlert(ThresholdAlertPayload payload, LocalDateTime sentAt);
+    NotificationSlice getNotifications(
+            Long customerId, String cursor, int size, Boolean isRead, List<NotificationType> types);
 
-    void handleCustomerBlocked(CustomerBlockedPayload payload, LocalDateTime sentAt);
+    long getUnreadCount(Long customerId);
+
+    void markAsRead(Long notificationId, Long customerId);
+
+    void markAllAsRead(Long customerId);
+
+    void deleteNotification(Long notificationId, Long customerId);
 }

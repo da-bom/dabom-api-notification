@@ -84,3 +84,7 @@ vapid:
 push-client:
   connect-timeout: ${PUSH_CLIENT_CONNECT_TIMEOUT:5000}
   socket-timeout: ${PUSH_CLIENT_SOCKET_TIMEOUT:5000}
+
+app:
+  notification:
+    retention-days: ${NOTIFICATION_RETENTION_DAYS:30}

@@ -1,185 +1,209 @@
 package com.project.domain.notification.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.dabom.messaging.kafka.event.dto.notification.CustomerBlockedPayload;
-import com.dabom.messaging.kafka.event.dto.notification.ThresholdAlertPayload;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.project.domain.family.repository.FamilyMemberRepository;
+import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
+import com.project.domain.notification.dto.NotificationSlice;
 import com.project.domain.notification.entity.NotificationLog;
-import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
-import com.project.domain.webpush.service.WebPushService;
 import com.project.global.exception.ApplicationException;
+import com.project.global.util.CursorUtil;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("NotificationServiceImpl 단위 테스트")
 class NotificationServiceImplTest {
 
     @Mock private NotificationLogRepository notificationLogRepository;
-    @Mock private FamilyMemberRepository familyMemberRepository;
-    @Mock private WebPushService webPushService;
-    @Mock private ObjectMapper objectMapper;
+    @Mock private CursorUtil cursorUtil;
 
     @InjectMocks private NotificationServiceImpl notificationService;
 
-    @Captor private ArgumentCaptor<List<NotificationLog>> logsCaptor;
-    @Captor private ArgumentCaptor<NotificationLog> logCaptor;
-
+    private static final Long CUSTOMER_ID = 10L;
+    private static final Long NOTIFICATION_ID = 100L;
     private static final Long FAMILY_ID = 1L;
-    private static final Long CUSTOMER_ID_1 = 10L;
-    private static final Long CUSTOMER_ID_2 = 11L;
-    private static final LocalDateTime SENT_AT = LocalDateTime.of(2026, 3, 14, 12, 0, 0);
-    private static final String THRESHOLD_PAYLOAD_JSON =
-            "{\"familyId\":1,\"thresholdPercent\":50,\"message\":\"데이터 50% 사용\"}";
-    private static final String BLOCKED_PAYLOAD_JSON =
-            "{\"familyId\":1,\"customerId\":10,\"blockReason\":\"MONTHLY_LIMIT_EXCEEDED\","
-                    + "\"blockedAt\":\"2026-03-14T12:00\"}";
+
+    private NotificationLog createNotificationLog(Long id) {
+        NotificationLog log =
+                NotificationLog.builder()
+                        .customerId(CUSTOMER_ID)
+                        .familyId(FAMILY_ID)
+                        .type(NotificationType.THRESHOLD_ALERT)
+                        .title("테스트 알림")
+                        .message("테스트 메시지")
+                        .payload("{}")
+                        .sentAt(LocalDateTime.now())
+                        .build();
+        try {
+            var idField = NotificationLog.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(log, id);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return log;
+    }
 
     @Nested
-    @DisplayName("handleThresholdAlert")
-    class HandleThresholdAlert {
+    @DisplayName("getNotifications")
+    class GetNotifications {
 
         @Test
-        @DisplayName("가족 구성원 수만큼 NotificationLog 생성 후 sendToFamily 호출")
-        void createsLogsForAllFamilyMembers() throws JsonProcessingException {
-            ThresholdAlertPayload payload = new ThresholdAlertPayload(FAMILY_ID, 50, "데이터 50% 사용");
-            when(familyMemberRepository.findCustomerIdsByFamilyId(FAMILY_ID))
-                    .thenReturn(List.of(CUSTOMER_ID_1, CUSTOMER_ID_2));
-            when(objectMapper.writeValueAsString(payload)).thenReturn(THRESHOLD_PAYLOAD_JSON);
+        @DisplayName("다음 페이지가 있을 때 hasNext=true, nextCursor 반환")
+        void returnsSliceWithNextPage() {
+            int size = 2;
+            List<NotificationLog> logs = new ArrayList<>();
+            logs.add(createNotificationLog(3L));
+            logs.add(createNotificationLog(2L));
+            logs.add(createNotificationLog(1L));
 
-            notificationService.handleThresholdAlert(payload, SENT_AT);
+            when(cursorUtil.decode(null)).thenReturn(null);
+            when(notificationLogRepository.findByCustomerIdWithCursor(
+                            eq(CUSTOMER_ID), eq(null), eq(size), eq(null), eq(null), any()))
+                    .thenReturn(logs);
+            when(cursorUtil.encode(2L)).thenReturn("encoded-cursor");
+            when(notificationLogRepository.countUnread(eq(CUSTOMER_ID), any())).thenReturn(5L);
 
-            verify(notificationLogRepository).saveAll(logsCaptor.capture());
-            List<NotificationLog> saved = logsCaptor.getValue();
-            assertThat(saved)
-                    .hasSize(2)
-                    .satisfies(
-                            logs -> {
-                                assertThat(logs.get(0).getCustomerId()).isEqualTo(CUSTOMER_ID_1);
-                                assertThat(logs.get(1).getCustomerId()).isEqualTo(CUSTOMER_ID_2);
-                            })
-                    .allSatisfy(
-                            log -> {
-                                assertThat(log.getFamilyId()).isEqualTo(FAMILY_ID);
-                                assertThat(log.getType())
-                                        .isEqualTo(NotificationType.THRESHOLD_ALERT);
-                                assertThat(log.getMessage()).isEqualTo("데이터 50% 사용");
-                                assertThat(log.getPayload()).isEqualTo(THRESHOLD_PAYLOAD_JSON);
-                                assertThat(log.getSentAt()).isEqualTo(SENT_AT);
-                                assertThat(log.isRead()).isFalse();
-                            });
-            verify(webPushService).sendToFamily(FAMILY_ID, "데이터 50% 사용");
+            NotificationSlice result =
+                    notificationService.getNotifications(CUSTOMER_ID, null, size, null, null);
+
+            assertThat(result.hasNext()).isTrue();
+            assertThat(result.nextCursor()).isEqualTo("encoded-cursor");
+            assertThat(result.content()).hasSize(2);
+            assertThat(result.unreadCount()).isEqualTo(5L);
         }
 
         @Test
-        @DisplayName("가족 구성원이 없으면 빈 리스트 저장, 푸시는 호출")
-        void emptyFamilyMembers_savesEmptyList() {
-            ThresholdAlertPayload payload = new ThresholdAlertPayload(FAMILY_ID, 50, "데이터 50% 사용");
-            when(familyMemberRepository.findCustomerIdsByFamilyId(FAMILY_ID)).thenReturn(List.of());
+        @DisplayName("다음 페이지가 없을 때 hasNext=false, nextCursor=null")
+        void returnsSliceWithoutNextPage() {
+            int size = 10;
+            List<NotificationLog> logs = List.of(createNotificationLog(1L));
 
-            notificationService.handleThresholdAlert(payload, SENT_AT);
+            when(cursorUtil.decode(null)).thenReturn(null);
+            when(notificationLogRepository.findByCustomerIdWithCursor(
+                            eq(CUSTOMER_ID), eq(null), eq(size), eq(null), eq(null), any()))
+                    .thenReturn(logs);
+            when(notificationLogRepository.countUnread(eq(CUSTOMER_ID), any())).thenReturn(0L);
 
-            verify(notificationLogRepository).saveAll(logsCaptor.capture());
-            assertThat(logsCaptor.getValue()).isEmpty();
-            verify(webPushService).sendToFamily(FAMILY_ID, "데이터 50% 사용");
-        }
+            NotificationSlice result =
+                    notificationService.getNotifications(CUSTOMER_ID, null, size, null, null);
 
-        @Test
-        @DisplayName("푸시 전송 실패 시 예외 전파 없이 정상 완료")
-        void pushFailure_doesNotPropagate() {
-            ThresholdAlertPayload payload = new ThresholdAlertPayload(FAMILY_ID, 50, "데이터 50% 사용");
-            when(familyMemberRepository.findCustomerIdsByFamilyId(FAMILY_ID))
-                    .thenReturn(List.of(CUSTOMER_ID_1));
-            doThrow(new RuntimeException("push failed"))
-                    .when(webPushService)
-                    .sendToFamily(anyLong(), anyString());
-
-            assertThatCode(() -> notificationService.handleThresholdAlert(payload, SENT_AT))
-                    .doesNotThrowAnyException();
-
-            verify(notificationLogRepository).saveAll(any());
+            assertThat(result.hasNext()).isFalse();
+            assertThat(result.nextCursor()).isNull();
+            assertThat(result.content()).hasSize(1);
         }
     }
 
     @Nested
-    @DisplayName("handleCustomerBlocked")
-    class HandleCustomerBlocked {
+    @DisplayName("getUnreadCount")
+    class GetUnreadCount {
 
         @Test
-        @DisplayName("차단된 고객에게 NotificationLog 1건 생성 후 sendToUser 호출")
-        void createsLogAndSendsPush() throws JsonProcessingException {
-            CustomerBlockedPayload payload =
-                    new CustomerBlockedPayload(
-                            FAMILY_ID, CUSTOMER_ID_1, "MONTHLY_LIMIT_EXCEEDED", "2026-03-14T12:00");
-            when(objectMapper.writeValueAsString(payload)).thenReturn(BLOCKED_PAYLOAD_JSON);
+        @DisplayName("읽지 않은 알림 수 반환")
+        void returnsUnreadCount() {
+            when(notificationLogRepository.countUnread(eq(CUSTOMER_ID), any())).thenReturn(7L);
 
-            notificationService.handleCustomerBlocked(payload, SENT_AT);
+            long count = notificationService.getUnreadCount(CUSTOMER_ID);
 
-            verify(notificationLogRepository).save(logCaptor.capture());
-            NotificationLog saved = logCaptor.getValue();
-            assertThat(saved.getCustomerId()).isEqualTo(CUSTOMER_ID_1);
-            assertThat(saved.getFamilyId()).isEqualTo(FAMILY_ID);
-            assertThat(saved.getType()).isEqualTo(NotificationType.BLOCKED);
-            assertThat(saved.getMessage()).contains("MONTHLY_LIMIT_EXCEEDED");
-            assertThat(saved.getPayload()).isEqualTo(BLOCKED_PAYLOAD_JSON);
-            assertThat(saved.getSentAt()).isEqualTo(SENT_AT);
-            assertThat(saved.isRead()).isFalse();
-            verify(webPushService).sendToUser(eq(CUSTOMER_ID_1), anyString());
-        }
-
-        @Test
-        @DisplayName("푸시 전송 실패 시 예외 전파 없이 정상 완료")
-        void pushFailure_doesNotPropagate() {
-            CustomerBlockedPayload payload =
-                    new CustomerBlockedPayload(
-                            FAMILY_ID, CUSTOMER_ID_1, "MONTHLY_LIMIT_EXCEEDED", "2026-03-14T12:00");
-            doThrow(new RuntimeException("subscription not found"))
-                    .when(webPushService)
-                    .sendToUser(anyLong(), anyString());
-
-            assertThatCode(() -> notificationService.handleCustomerBlocked(payload, SENT_AT))
-                    .doesNotThrowAnyException();
-
-            verify(notificationLogRepository).save(any(NotificationLog.class));
+            assertThat(count).isEqualTo(7L);
         }
     }
 
     @Nested
-    @DisplayName("serializePayload 실패")
-    class SerializePayloadFailure {
+    @DisplayName("markAsRead")
+    class MarkAsRead {
 
         @Test
-        @DisplayName("직렬화 실패 시 ApplicationException 발생")
-        void throwsApplicationException() throws JsonProcessingException {
-            ThresholdAlertPayload payload = new ThresholdAlertPayload(FAMILY_ID, 50, "데이터 50% 사용");
-            when(objectMapper.writeValueAsString(payload))
-                    .thenThrow(new JsonProcessingException("serialize error") {});
+        @DisplayName("알림을 읽음 처리")
+        void marksNotificationAsRead() {
+            NotificationLog log = createNotificationLog(NOTIFICATION_ID);
+            when(notificationLogRepository.findByIdAndCustomerId(NOTIFICATION_ID, CUSTOMER_ID))
+                    .thenReturn(Optional.of(log));
 
-            assertThatThrownBy(() -> notificationService.handleThresholdAlert(payload, SENT_AT))
+            notificationService.markAsRead(NOTIFICATION_ID, CUSTOMER_ID);
+
+            assertThat(log.isRead()).isTrue();
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 알림이면 예외 발생")
+        void throwsWhenNotFound() {
+            when(notificationLogRepository.findByIdAndCustomerId(NOTIFICATION_ID, CUSTOMER_ID))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> notificationService.markAsRead(NOTIFICATION_ID, CUSTOMER_ID))
+                    .isInstanceOf(ApplicationException.class);
+        }
+
+        @Test
+        @DisplayName("삭제된 알림이면 예외 발생")
+        void throwsWhenDeleted() {
+            NotificationLog log = createNotificationLog(NOTIFICATION_ID);
+            log.softDelete();
+            when(notificationLogRepository.findByIdAndCustomerId(NOTIFICATION_ID, CUSTOMER_ID))
+                    .thenReturn(Optional.of(log));
+
+            assertThatThrownBy(() -> notificationService.markAsRead(NOTIFICATION_ID, CUSTOMER_ID))
+                    .isInstanceOf(ApplicationException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("markAllAsRead")
+    class MarkAllAsRead {
+
+        @Test
+        @DisplayName("전체 읽음 처리 호출")
+        void callsRepositoryMarkAllAsRead() {
+            notificationService.markAllAsRead(CUSTOMER_ID);
+
+            verify(notificationLogRepository).markAllAsRead(eq(CUSTOMER_ID), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("deleteNotification")
+    class DeleteNotification {
+
+        @Test
+        @DisplayName("알림 소프트 삭제")
+        void softDeletesNotification() {
+            NotificationLog log = createNotificationLog(NOTIFICATION_ID);
+            when(notificationLogRepository.findByIdAndCustomerId(NOTIFICATION_ID, CUSTOMER_ID))
+                    .thenReturn(Optional.of(log));
+
+            notificationService.deleteNotification(NOTIFICATION_ID, CUSTOMER_ID);
+
+            assertThat(log.isDeleted()).isTrue();
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 알림이면 예외 발생")
+        void throwsWhenNotFound() {
+            when(notificationLogRepository.findByIdAndCustomerId(NOTIFICATION_ID, CUSTOMER_ID))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(
+                            () ->
+                                    notificationService.deleteNotification(
+                                            NOTIFICATION_ID, CUSTOMER_ID))
                     .isInstanceOf(ApplicationException.class);
         }
     }

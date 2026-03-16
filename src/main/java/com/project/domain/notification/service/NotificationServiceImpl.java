@@ -3,20 +3,17 @@ package com.project.domain.notification.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.dabom.messaging.kafka.event.dto.notification.CustomerBlockedPayload;
-import com.dabom.messaging.kafka.event.dto.notification.ThresholdAlertPayload;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.project.domain.family.repository.FamilyMemberRepository;
+import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
+import com.project.domain.notification.dto.NotificationSlice;
 import com.project.domain.notification.entity.NotificationLog;
-import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
-import com.project.domain.webpush.service.WebPushService;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.NotificationErrorCode;
+import com.project.global.util.CursorUtil;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,78 +23,80 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
-    private static final String BLOCKED_MESSAGE_FORMAT = "데이터 사용이 차단되었습니다. 사유: %s";
-
     private final NotificationLogRepository notificationLogRepository;
-    private final FamilyMemberRepository familyMemberRepository;
-    private final WebPushService webPushService;
-    private final ObjectMapper objectMapper;
+    private final CursorUtil cursorUtil;
 
-    @Transactional
+    @Value("${app.notification.retention-days}")
+    private int retentionDays;
+
+    @Transactional(readOnly = true)
     @Override
-    public void handleThresholdAlert(ThresholdAlertPayload payload, LocalDateTime sentAt) {
-        String payloadJson = serializePayload(payload);
-        Long familyId = payload.familyId();
-        String message = payload.message();
+    public NotificationSlice getNotifications(
+            Long customerId,
+            String cursor,
+            int size,
+            Boolean isRead,
+            List<NotificationType> types) {
 
-        List<Long> customerIds = familyMemberRepository.findCustomerIdsByFamilyId(familyId);
+        Long cursorId = cursorUtil.decode(cursor);
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
 
         List<NotificationLog> logs =
-                customerIds.stream()
-                        .map(
-                                customerId ->
-                                        NotificationLog.builder()
-                                                .customerId(customerId)
-                                                .familyId(familyId)
-                                                .type(NotificationType.THRESHOLD_ALERT)
-                                                .message(message)
-                                                .payload(payloadJson)
-                                                .sentAt(sentAt)
-                                                .build())
-                        .toList();
+                notificationLogRepository.findByCustomerIdWithCursor(
+                        customerId, cursorId, size, isRead, types, cutoff);
 
-        notificationLogRepository.saveAll(logs);
+        boolean hasNext = logs.size() > size;
+        List<NotificationLog> content = hasNext ? logs.subList(0, size) : logs;
 
-        try {
-            webPushService.sendToFamily(familyId, message);
-        } catch (Exception e) {
-            log.warn("ThresholdAlert 푸시 전송 실패 familyId={}", familyId, e);
-        }
+        String nextCursor =
+                hasNext ? cursorUtil.encode(content.get(content.size() - 1).getId()) : null;
+
+        long unreadCount = notificationLogRepository.countUnread(customerId, cutoff);
+
+        return new NotificationSlice(content, nextCursor, hasNext, unreadCount);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public long getUnreadCount(Long customerId) {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
+        return notificationLogRepository.countUnread(customerId, cutoff);
     }
 
     @Transactional
     @Override
-    public void handleCustomerBlocked(CustomerBlockedPayload payload, LocalDateTime sentAt) {
-        String payloadJson = serializePayload(payload);
-        Long customerId = payload.customerId();
-        Long familyId = payload.familyId();
-        String message = String.format(BLOCKED_MESSAGE_FORMAT, payload.blockReason());
-
-        NotificationLog notificationLog =
-                NotificationLog.builder()
-                        .customerId(customerId)
-                        .familyId(familyId)
-                        .type(NotificationType.BLOCKED)
-                        .message(message)
-                        .payload(payloadJson)
-                        .sentAt(sentAt)
-                        .build();
-
-        notificationLogRepository.save(notificationLog);
-
-        try {
-            webPushService.sendToUser(customerId, message);
-        } catch (Exception e) {
-            log.warn("CustomerBlocked 푸시 전송 실패 customerId={}", customerId, e);
-        }
+    public void markAsRead(Long notificationId, Long customerId) {
+        NotificationLog notification = findOwnedNotification(notificationId, customerId);
+        notification.markAsRead();
     }
 
-    private String serializePayload(Object payload) {
-        try {
-            return objectMapper.writeValueAsString(payload);
-        } catch (JsonProcessingException e) {
-            log.error("Payload 직렬화 실패", e);
-            throw new ApplicationException(NotificationErrorCode.NOTIFICATION_SAVE_FAILED);
+    @Transactional
+    @Override
+    public void markAllAsRead(Long customerId) {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
+        notificationLogRepository.markAllAsRead(customerId, cutoff);
+    }
+
+    @Transactional
+    @Override
+    public void deleteNotification(Long notificationId, Long customerId) {
+        NotificationLog notification = findOwnedNotification(notificationId, customerId);
+        notification.softDelete();
+    }
+
+    private NotificationLog findOwnedNotification(Long notificationId, Long customerId) {
+        NotificationLog notificationLog =
+                notificationLogRepository
+                        .findByIdAndCustomerId(notificationId, customerId)
+                        .orElseThrow(
+                                () ->
+                                        new ApplicationException(
+                                                NotificationErrorCode.NOTIFICATION_NOT_FOUND));
+
+        if (notificationLog.isDeleted()) {
+            throw new ApplicationException(NotificationErrorCode.NOTIFICATION_NOT_FOUND);
         }
+
+        return notificationLog;
     }
 }

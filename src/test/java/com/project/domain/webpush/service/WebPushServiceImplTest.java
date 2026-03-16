@@ -18,10 +18,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.family.repository.FamilyMemberRepository;
-import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
-import com.project.domain.webpush.entity.Subscription;
-import com.project.domain.webpush.repository.SubscriptionRepository;
+import com.project.domain.webpush.dto.request.PushSubscriptionRequest;
+import com.project.domain.webpush.entity.PushSubscription;
+import com.project.domain.webpush.repository.PushSubscriptionRepository;
 import com.project.global.exception.ApplicationException;
 
 import nl.martijndwars.webpush.PushService;
@@ -30,10 +31,11 @@ import nl.martijndwars.webpush.PushService;
 @DisplayName("WebPushServiceImpl 단위 테스트")
 class WebPushServiceImplTest {
 
-    @Mock private SubscriptionRepository subscriptionRepository;
+    @Mock private PushSubscriptionRepository pushSubscriptionRepository;
     @Mock private FamilyMemberRepository familyMemberRepository;
     @Mock private PushService pushService;
     @Mock private CloseableHttpClient pushHttpClient;
+    @Mock private ObjectMapper objectMapper;
 
     @InjectMocks private WebPushServiceImpl webPushService;
 
@@ -48,8 +50,8 @@ class WebPushServiceImplTest {
         return new PushSubscriptionRequest(endpoint, Map.of("p256dh", P256DH, "auth", AUTH));
     }
 
-    private Subscription createSubscription(String endpoint, Long customerId) {
-        return Subscription.builder()
+    private PushSubscription createSubscription(String endpoint, Long customerId) {
+        return PushSubscription.builder()
                 .endpoint(endpoint)
                 .p256dh(P256DH)
                 .auth(AUTH)
@@ -64,70 +66,73 @@ class WebPushServiceImplTest {
         @Test
         @DisplayName("Case 1: 기존 endpoint + 같은 customer → updateSubscription 호출")
         void sameEndpointSameCustomer_updatesSubscription() {
-            Subscription existing = createSubscription(ENDPOINT, CUSTOMER_ID);
-            when(subscriptionRepository.findByEndpoint(ENDPOINT)).thenReturn(Optional.of(existing));
-            when(subscriptionRepository.findByCustomerId(CUSTOMER_ID))
+            PushSubscription existing = createSubscription(ENDPOINT, CUSTOMER_ID);
+            when(pushSubscriptionRepository.findByEndpoint(ENDPOINT))
+                    .thenReturn(Optional.of(existing));
+            when(pushSubscriptionRepository.findByCustomerId(CUSTOMER_ID))
                     .thenReturn(Optional.of(existing));
 
             webPushService.subscribe(createRequest(ENDPOINT), CUSTOMER_ID);
 
-            verify(subscriptionRepository, never()).delete(any());
-            verify(subscriptionRepository, never()).save(any());
+            verify(pushSubscriptionRepository, never()).delete(any());
+            verify(pushSubscriptionRepository, never()).save(any());
         }
 
         @Test
         @DisplayName("Case 2: 기존 endpoint + 다른 customer (기존 고객 구독 있음) → 삭제 후 reassign")
         void sameEndpointDifferentCustomer_withExistingSubscription_deletesAndReassigns() {
-            Subscription endpointSub = createSubscription(ENDPOINT, OTHER_CUSTOMER_ID);
-            Subscription customerSub = createSubscription(OTHER_ENDPOINT, CUSTOMER_ID);
-            when(subscriptionRepository.findByEndpoint(ENDPOINT))
+            PushSubscription endpointSub = createSubscription(ENDPOINT, OTHER_CUSTOMER_ID);
+            PushSubscription customerSub = createSubscription(OTHER_ENDPOINT, CUSTOMER_ID);
+            when(pushSubscriptionRepository.findByEndpoint(ENDPOINT))
                     .thenReturn(Optional.of(endpointSub));
-            when(subscriptionRepository.findByCustomerId(CUSTOMER_ID))
+            when(pushSubscriptionRepository.findByCustomerId(CUSTOMER_ID))
                     .thenReturn(Optional.of(customerSub));
 
             webPushService.subscribe(createRequest(ENDPOINT), CUSTOMER_ID);
 
-            verify(subscriptionRepository).delete(customerSub);
-            verify(subscriptionRepository, never()).save(any());
+            verify(pushSubscriptionRepository).delete(customerSub);
+            verify(pushSubscriptionRepository, never()).save(any());
         }
 
         @Test
         @DisplayName("Case 2b: 기존 endpoint + 다른 customer (기존 고객 구독 없음) → reassign만")
         void sameEndpointDifferentCustomer_withoutExistingSubscription_reassignsOnly() {
-            Subscription endpointSub = createSubscription(ENDPOINT, OTHER_CUSTOMER_ID);
-            when(subscriptionRepository.findByEndpoint(ENDPOINT))
+            PushSubscription endpointSub = createSubscription(ENDPOINT, OTHER_CUSTOMER_ID);
+            when(pushSubscriptionRepository.findByEndpoint(ENDPOINT))
                     .thenReturn(Optional.of(endpointSub));
-            when(subscriptionRepository.findByCustomerId(CUSTOMER_ID)).thenReturn(Optional.empty());
+            when(pushSubscriptionRepository.findByCustomerId(CUSTOMER_ID))
+                    .thenReturn(Optional.empty());
 
             webPushService.subscribe(createRequest(ENDPOINT), CUSTOMER_ID);
 
-            verify(subscriptionRepository, never()).delete(any());
-            verify(subscriptionRepository, never()).save(any());
+            verify(pushSubscriptionRepository, never()).delete(any());
+            verify(pushSubscriptionRepository, never()).save(any());
         }
 
         @Test
         @DisplayName("Case 3: 새 endpoint + 기존 customer → updateSubscription 호출")
         void newEndpointExistingCustomer_updatesSubscription() {
-            Subscription customerSub = createSubscription(OTHER_ENDPOINT, CUSTOMER_ID);
-            when(subscriptionRepository.findByEndpoint(ENDPOINT)).thenReturn(Optional.empty());
-            when(subscriptionRepository.findByCustomerId(CUSTOMER_ID))
+            PushSubscription customerSub = createSubscription(OTHER_ENDPOINT, CUSTOMER_ID);
+            when(pushSubscriptionRepository.findByEndpoint(ENDPOINT)).thenReturn(Optional.empty());
+            when(pushSubscriptionRepository.findByCustomerId(CUSTOMER_ID))
                     .thenReturn(Optional.of(customerSub));
 
             webPushService.subscribe(createRequest(ENDPOINT), CUSTOMER_ID);
 
-            verify(subscriptionRepository, never()).delete(any());
-            verify(subscriptionRepository, never()).save(any());
+            verify(pushSubscriptionRepository, never()).delete(any());
+            verify(pushSubscriptionRepository, never()).save(any());
         }
 
         @Test
         @DisplayName("Case 4: 새 endpoint + 새 customer → save 호출")
         void newEndpointNewCustomer_savesNewSubscription() {
-            when(subscriptionRepository.findByEndpoint(ENDPOINT)).thenReturn(Optional.empty());
-            when(subscriptionRepository.findByCustomerId(CUSTOMER_ID)).thenReturn(Optional.empty());
+            when(pushSubscriptionRepository.findByEndpoint(ENDPOINT)).thenReturn(Optional.empty());
+            when(pushSubscriptionRepository.findByCustomerId(CUSTOMER_ID))
+                    .thenReturn(Optional.empty());
 
             webPushService.subscribe(createRequest(ENDPOINT), CUSTOMER_ID);
 
-            verify(subscriptionRepository).save(any(Subscription.class));
+            verify(pushSubscriptionRepository).save(any(PushSubscription.class));
         }
     }
 
