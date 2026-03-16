@@ -1,6 +1,6 @@
 package com.project.domain.webpush.service;
 
-import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
+import com.project.domain.webpush.dto.request.PushSubscriptionRequest;
 
 public interface WebPushService {
 

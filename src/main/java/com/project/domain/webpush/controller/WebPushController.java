@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.project.domain.webpush.controller.dto.AdminPushRequest;
-import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
-import com.project.domain.webpush.controller.dto.VapidPublicKey;
+import com.project.domain.webpush.dto.request.AdminPushRequest;
+import com.project.domain.webpush.dto.request.PushSubscriptionRequest;
+import com.project.domain.webpush.dto.response.VapidPublicKey;
 import com.project.domain.webpush.service.WebPushService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.AdminOnly;

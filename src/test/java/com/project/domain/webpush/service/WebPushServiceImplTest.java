@@ -20,7 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.family.repository.FamilyMemberRepository;
-import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
+import com.project.domain.webpush.dto.request.PushSubscriptionRequest;
 import com.project.domain.webpush.entity.PushSubscription;
 import com.project.domain.webpush.repository.PushSubscriptionRepository;
 import com.project.global.exception.ApplicationException;

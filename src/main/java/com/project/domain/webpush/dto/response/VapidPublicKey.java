@@ -1,3 +1,3 @@
-package com.project.domain.webpush.controller.dto;
+package com.project.domain.webpush.dto.response;
 
 public record VapidPublicKey(String publicKey) {}
