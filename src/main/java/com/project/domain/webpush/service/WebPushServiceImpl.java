@@ -8,6 +8,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -17,10 +18,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.webpush.controller.dto.PushSubscriptionRequest;
-import com.project.domain.webpush.entity.Subscription;
-import com.project.domain.webpush.repository.SubscriptionRepository;
+import com.project.domain.webpush.entity.PushSubscription;
+import com.project.domain.webpush.repository.PushSubscriptionRepository;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.SubscriptionErrorCode;
 import com.project.global.util.NetworkValidator;
@@ -37,10 +40,11 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class WebPushServiceImpl implements WebPushService {
 
-    private final SubscriptionRepository subscriptionRepository;
+    private final PushSubscriptionRepository pushSubscriptionRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final PushService pushService;
     private final CloseableHttpClient pushHttpClient;
+    private final ObjectMapper objectMapper;
 
     @Value("${vapid.key.public}")
     private String vapidPublicKey;
@@ -50,17 +54,18 @@ public class WebPushServiceImpl implements WebPushService {
     public void subscribe(PushSubscriptionRequest request, Long customerId) {
         validateEndpointUrl(request.endpoint());
 
-        Optional<Subscription> byEndpoint =
-                subscriptionRepository.findByEndpoint(request.endpoint());
-        Optional<Subscription> byCustomer = subscriptionRepository.findByCustomerId(customerId);
+        Optional<PushSubscription> byEndpoint =
+                pushSubscriptionRepository.findByEndpoint(request.endpoint());
+        Optional<PushSubscription> byCustomer =
+                pushSubscriptionRepository.findByCustomerId(customerId);
 
         if (byEndpoint.isPresent()) {
-            Subscription endpointSub = byEndpoint.get();
+            PushSubscription endpointSub = byEndpoint.get();
             if (endpointSub.getCustomerId().equals(customerId)) {
                 endpointSub.updateSubscription(
                         request.endpoint(), request.p256dh(), request.authKey());
             } else {
-                byCustomer.ifPresent(subscriptionRepository::delete);
+                byCustomer.ifPresent(pushSubscriptionRepository::delete);
                 endpointSub.reassign(customerId, request.p256dh(), request.authKey());
             }
         } else if (byCustomer.isPresent()) {
@@ -68,38 +73,51 @@ public class WebPushServiceImpl implements WebPushService {
                     .get()
                     .updateSubscription(request.endpoint(), request.p256dh(), request.authKey());
         } else {
-            Subscription subscription =
-                    Subscription.builder()
+            PushSubscription subscription =
+                    PushSubscription.builder()
                             .endpoint(request.endpoint())
                             .p256dh(request.p256dh())
                             .auth(request.authKey())
                             .customerId(customerId)
                             .build();
-            subscriptionRepository.save(subscription);
+            pushSubscriptionRepository.save(subscription);
         }
     }
 
+    @Transactional
     @Override
-    public void sendToUser(Long customerId, String message) {
-        Subscription subscription =
-                subscriptionRepository
+    public void unsubscribe(Long customerId) {
+        PushSubscription subscription =
+                pushSubscriptionRepository
+                        .findByCustomerId(customerId)
+                        .orElseThrow(
+                                () ->
+                                        new ApplicationException(
+                                                SubscriptionErrorCode.SUBSCRIPTION_NOT_FOUND));
+        pushSubscriptionRepository.delete(subscription);
+    }
+
+    @Override
+    public void sendToUser(Long customerId, String title, String message) {
+        PushSubscription subscription =
+                pushSubscriptionRepository
                         .findByCustomerId(customerId)
                         .orElseThrow(
                                 () ->
                                         new ApplicationException(
                                                 SubscriptionErrorCode.SUBSCRIPTION_NOT_FOUND));
 
-        sendPushNotification(subscription, message);
+        sendPushNotification(subscription, title, message);
     }
 
     @Override
-    public void sendToFamily(Long familyId, String message) {
+    public void sendToFamily(Long familyId, String title, String message) {
         List<Long> customerIds = familyMemberRepository.findCustomerIdsByFamilyId(familyId);
 
-        List<Subscription> subscriptions =
-                subscriptionRepository.findAllByCustomerIdIn(customerIds);
+        List<PushSubscription> subscriptions =
+                pushSubscriptionRepository.findAllByCustomerIdIn(customerIds);
 
-        subscriptions.forEach(subscription -> sendPushNotification(subscription, message));
+        subscriptions.forEach(subscription -> sendPushNotification(subscription, title, message));
     }
 
     @Override
@@ -122,14 +140,17 @@ public class WebPushServiceImpl implements WebPushService {
         }
     }
 
-    private void sendPushNotification(Subscription subscription, String message) {
+    private void sendPushNotification(PushSubscription subscription, String title, String message) {
         try {
+            String payload =
+                    objectMapper.writeValueAsString(Map.of("title", title, "body", message));
+
             nl.martijndwars.webpush.Subscription sub =
                     new nl.martijndwars.webpush.Subscription(
                             subscription.getEndpoint(),
                             new nl.martijndwars.webpush.Subscription.Keys(
                                     subscription.getP256dh(), subscription.getAuth()));
-            Notification notification = new Notification(sub, message);
+            Notification notification = new Notification(sub, payload);
             try (CloseableHttpResponse response =
                     pushHttpClient.execute(
                             pushService.preparePost(notification, Encoding.AES128GCM))) {
@@ -147,6 +168,9 @@ public class WebPushServiceImpl implements WebPushService {
                         response.getStatusLine(),
                         body.replaceAll("[\\r\\n]", "_"));
             }
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize push payload", e);
+            throw new ApplicationException(SubscriptionErrorCode.PUSH_SEND_FAILED);
         } catch (GeneralSecurityException | IOException | JoseException e) {
             log.error("Failed to send push notification", e);
             throw new ApplicationException(SubscriptionErrorCode.PUSH_SEND_FAILED);

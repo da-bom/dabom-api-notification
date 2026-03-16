@@ -43,7 +43,7 @@ public class WebPushController {
     public ApiResponse<Void> sendPushMessage(
             @CustomerId Long customerId, @Valid @RequestBody PushMessageRequest request) {
         log.info("Push message send requested for customerId={}", customerId);
-        webPushService.sendToUser(customerId, request.message());
+        webPushService.sendToUser(customerId, "푸시 알림", request.message());
         return ApiResponse.success(null);
     }
 }

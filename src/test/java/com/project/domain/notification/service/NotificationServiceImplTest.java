@@ -92,7 +92,7 @@ class NotificationServiceImplTest {
                                 assertThat(log.getSentAt()).isEqualTo(SENT_AT);
                                 assertThat(log.isRead()).isFalse();
                             });
-            verify(webPushService).sendToFamily(FAMILY_ID, "데이터 50% 사용");
+            verify(webPushService).sendToFamily(FAMILY_ID, "데이터 경고", "데이터 50% 사용");
         }
 
         @Test
@@ -105,7 +105,7 @@ class NotificationServiceImplTest {
 
             verify(notificationLogRepository).saveAll(logsCaptor.capture());
             assertThat(logsCaptor.getValue()).isEmpty();
-            verify(webPushService).sendToFamily(FAMILY_ID, "데이터 50% 사용");
+            verify(webPushService).sendToFamily(FAMILY_ID, "데이터 경고", "데이터 50% 사용");
         }
 
         @Test
@@ -116,7 +116,7 @@ class NotificationServiceImplTest {
                     .thenReturn(List.of(CUSTOMER_ID_1));
             doThrow(new RuntimeException("push failed"))
                     .when(webPushService)
-                    .sendToFamily(anyLong(), anyString());
+                    .sendToFamily(anyLong(), anyString(), anyString());
 
             assertThatCode(() -> notificationService.handleThresholdAlert(payload, SENT_AT))
                     .doesNotThrowAnyException();
@@ -148,7 +148,7 @@ class NotificationServiceImplTest {
             assertThat(saved.getPayload()).isEqualTo(BLOCKED_PAYLOAD_JSON);
             assertThat(saved.getSentAt()).isEqualTo(SENT_AT);
             assertThat(saved.isRead()).isFalse();
-            verify(webPushService).sendToUser(eq(CUSTOMER_ID_1), anyString());
+            verify(webPushService).sendToUser(eq(CUSTOMER_ID_1), anyString(), anyString());
         }
 
         @Test
@@ -159,7 +159,7 @@ class NotificationServiceImplTest {
                             FAMILY_ID, CUSTOMER_ID_1, "MONTHLY_LIMIT_EXCEEDED", "2026-03-14T12:00");
             doThrow(new RuntimeException("subscription not found"))
                     .when(webPushService)
-                    .sendToUser(anyLong(), anyString());
+                    .sendToUser(anyLong(), anyString(), anyString());
 
             assertThatCode(() -> notificationService.handleCustomerBlocked(payload, SENT_AT))
                     .doesNotThrowAnyException();

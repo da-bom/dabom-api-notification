@@ -59,7 +59,7 @@ public class NotificationServiceImpl implements NotificationService {
         notificationLogRepository.saveAll(logs);
 
         try {
-            webPushService.sendToFamily(familyId, message);
+            webPushService.sendToFamily(familyId, "데이터 경고", message);
         } catch (Exception e) {
             log.warn("ThresholdAlert 푸시 전송 실패 familyId={}", familyId, e);
         }
@@ -86,7 +86,7 @@ public class NotificationServiceImpl implements NotificationService {
         notificationLogRepository.save(notificationLog);
 
         try {
-            webPushService.sendToUser(customerId, message);
+            webPushService.sendToUser(customerId, "데이터 차단", message);
         } catch (Exception e) {
             log.warn("CustomerBlocked 푸시 전송 실패 customerId={}", customerId, e);
         }
