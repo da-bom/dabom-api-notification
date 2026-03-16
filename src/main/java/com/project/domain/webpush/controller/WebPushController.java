@@ -19,6 +19,8 @@ import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.AdminOnly;
 import com.project.global.auth.aop.CustomerId;
 
+import io.swagger.v3.oas.annotations.Parameter;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,7 +39,7 @@ public class WebPushController {
 
     @PostMapping("/subscribe")
     public ApiResponse<Void> subscribe(
-            @CustomerId Long customerId,
+            @Parameter(hidden = true) @CustomerId Long customerId,
             @Valid @RequestBody PushSubscriptionRequest subscriptionRequest) {
         webPushService.subscribe(subscriptionRequest, customerId);
         return ApiResponse.created(null);
@@ -45,7 +47,7 @@ public class WebPushController {
 
     @DeleteMapping("/subscribe")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void unsubscribe(@CustomerId Long customerId) {
+    public void unsubscribe(@Parameter(hidden = true) @CustomerId Long customerId) {
         webPushService.unsubscribe(customerId);
     }
 

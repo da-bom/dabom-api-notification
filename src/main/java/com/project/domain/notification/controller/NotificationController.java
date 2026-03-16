@@ -17,6 +17,8 @@ import com.project.domain.notification.service.NotificationService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
 
+import io.swagger.v3.oas.annotations.Parameter;
+
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -28,7 +30,7 @@ public class NotificationController {
 
     @GetMapping
     public ApiResponse<NotificationListResponse> getNotifications(
-            @CustomerId Long customerId,
+            @Parameter(hidden = true) @CustomerId Long customerId,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Boolean isRead,
@@ -38,26 +40,29 @@ public class NotificationController {
     }
 
     @GetMapping("/unread-count")
-    public ApiResponse<UnreadCountResponse> getUnreadCount(@CustomerId Long customerId) {
+    public ApiResponse<UnreadCountResponse> getUnreadCount(
+            @Parameter(hidden = true) @CustomerId Long customerId) {
         return ApiResponse.success(notificationService.getUnreadCount(customerId));
     }
 
     @PatchMapping("/{notificationId}/read")
     public ApiResponse<Void> markAsRead(
-            @CustomerId Long customerId, @PathVariable Long notificationId) {
+            @Parameter(hidden = true) @CustomerId Long customerId,
+            @PathVariable Long notificationId) {
         notificationService.markAsRead(notificationId, customerId);
         return ApiResponse.success(null);
     }
 
     @PatchMapping("/read-all")
-    public ApiResponse<Void> markAllAsRead(@CustomerId Long customerId) {
+    public ApiResponse<Void> markAllAsRead(@Parameter(hidden = true) @CustomerId Long customerId) {
         notificationService.markAllAsRead(customerId);
         return ApiResponse.success(null);
     }
 
     @DeleteMapping("/{notificationId}")
     public ApiResponse<Void> deleteNotification(
-            @CustomerId Long customerId, @PathVariable Long notificationId) {
+            @Parameter(hidden = true) @CustomerId Long customerId,
+            @PathVariable Long notificationId) {
         notificationService.deleteNotification(notificationId, customerId);
         return ApiResponse.success(null);
     }
