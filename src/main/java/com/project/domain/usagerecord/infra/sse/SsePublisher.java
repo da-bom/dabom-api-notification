@@ -96,6 +96,10 @@ public class SsePublisher {
         emitterRegistry.send(familyId, "usage-updated-by-member", response);
     }
 
+    public void pushNotificationEvent(Long familyId, String eventType, Object payload) {
+        emitterRegistry.send(familyId, eventType, payload);
+    }
+
     // 가족별 총 사용량 최신 시각 저장소를 초기화하거나 반환합니다.
     private AtomicReference<LocalDateTime> totalTsRef(Long familyId) {
         return lastTotalBytesTimeByFamily.computeIfAbsent(
