@@ -3,6 +3,7 @@ package com.project.domain.notification.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,9 @@ public class NotificationServiceImpl implements NotificationService {
     private final SsePublisher ssePublisher;
     private final ObjectMapper objectMapper;
     private final CursorUtil cursorUtil;
+
+    @Value("${app.notification.retention-days}")
+    private int retentionDays;
 
     @Transactional
     @Override
@@ -71,10 +75,11 @@ public class NotificationServiceImpl implements NotificationService {
             List<NotificationType> types) {
 
         Long cursorId = cursorUtil.decode(cursor);
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
 
         List<NotificationLog> logs =
                 notificationLogRepository.findByCustomerIdWithCursor(
-                        customerId, cursorId, size, isRead, types);
+                        customerId, cursorId, size, isRead, types, cutoff);
 
         boolean hasNext = logs.size() > size;
         List<NotificationLog> content = hasNext ? logs.subList(0, size) : logs;
@@ -82,7 +87,7 @@ public class NotificationServiceImpl implements NotificationService {
         String nextCursor =
                 hasNext ? cursorUtil.encode(content.get(content.size() - 1).getId()) : null;
 
-        long unreadCount = notificationLogRepository.countUnread(customerId);
+        long unreadCount = notificationLogRepository.countUnread(customerId, cutoff);
 
         return new NotificationSlice(content, nextCursor, hasNext, unreadCount);
     }
@@ -90,7 +95,8 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(readOnly = true)
     @Override
     public long getUnreadCount(Long customerId) {
-        return notificationLogRepository.countUnread(customerId);
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
+        return notificationLogRepository.countUnread(customerId, cutoff);
     }
 
     @Transactional
@@ -103,7 +109,8 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional
     @Override
     public void markAllAsRead(Long customerId) {
-        notificationLogRepository.markAllAsRead(customerId);
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
+        notificationLogRepository.markAllAsRead(customerId, cutoff);
     }
 
     @Transactional

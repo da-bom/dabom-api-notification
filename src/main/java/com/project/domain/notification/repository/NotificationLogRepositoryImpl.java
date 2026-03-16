@@ -17,7 +17,6 @@ public class NotificationLogRepositoryImpl implements NotificationLogRepositoryC
     private final JPAQueryFactory queryFactory;
 
     private static final QNotificationLog n = QNotificationLog.notificationLog;
-    private static final int RETENTION_DAYS = 30;
 
     @Override
     public List<NotificationLog> findByCustomerIdWithCursor(
@@ -25,13 +24,13 @@ public class NotificationLogRepositoryImpl implements NotificationLogRepositoryC
             Long cursorId,
             int size,
             Boolean isRead,
-            List<NotificationType> types) {
+            List<NotificationType> types,
+            LocalDateTime cutoff) {
 
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(RETENTION_DAYS);
         BooleanBuilder where = new BooleanBuilder();
         where.and(n.customerId.eq(customerId));
         where.and(n.deletedAt.isNull());
-        where.and(n.sentAt.goe(thirtyDaysAgo));
+        where.and(n.sentAt.goe(cutoff));
 
         if (types != null && !types.isEmpty()) {
             where.and(n.type.in(types));
@@ -52,9 +51,7 @@ public class NotificationLogRepositoryImpl implements NotificationLogRepositoryC
     }
 
     @Override
-    public long countUnread(Long customerId) {
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(RETENTION_DAYS);
-
+    public long countUnread(Long customerId, LocalDateTime cutoff) {
         Long count =
                 queryFactory
                         .select(n.count())
@@ -63,16 +60,14 @@ public class NotificationLogRepositoryImpl implements NotificationLogRepositoryC
                                 n.customerId.eq(customerId),
                                 n.isRead.isFalse(),
                                 n.deletedAt.isNull(),
-                                n.sentAt.goe(thirtyDaysAgo))
+                                n.sentAt.goe(cutoff))
                         .fetchOne();
 
         return count != null ? count : 0L;
     }
 
     @Override
-    public void markAllAsRead(Long customerId) {
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(RETENTION_DAYS);
-
+    public void markAllAsRead(Long customerId, LocalDateTime cutoff) {
         queryFactory
                 .update(n)
                 .set(n.isRead, true)
@@ -80,7 +75,7 @@ public class NotificationLogRepositoryImpl implements NotificationLogRepositoryC
                         n.customerId.eq(customerId),
                         n.isRead.isFalse(),
                         n.deletedAt.isNull(),
-                        n.sentAt.goe(thirtyDaysAgo))
+                        n.sentAt.goe(cutoff))
                 .execute();
     }
 }
