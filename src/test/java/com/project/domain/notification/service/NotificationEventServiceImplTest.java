@@ -79,8 +79,8 @@ class NotificationEventServiceImplTest {
 
             verify(notificationLogRepository, times(2)).save(logCaptor.capture());
             List<NotificationLog> allSaved = logCaptor.getAllValues();
-            assertThat(allSaved).hasSize(2);
             assertThat(allSaved)
+                    .hasSize(2)
                     .allSatisfy(
                             saved -> {
                                 assertThat(saved.getFamilyId()).isEqualTo(FAMILY_ID);
