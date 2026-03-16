@@ -16,25 +16,21 @@ import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/families")
+@RequestMapping("/events")
 @RequiredArgsConstructor
-public class FamilyController {
+public class EventStreamController {
 
     private final SseSubscriber sseSubscriber;
 
-    @GetMapping(value = "/usage/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "가족 총 데이터 사용량 조회")
-    public SseEmitter getCurrentUsage(@Parameter(hidden = true) @CustomerId Long customerId) {
-
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "실시간 이벤트 스트림 (SSE)")
+    public SseEmitter getEventStream(@Parameter(hidden = true) @CustomerId Long customerId) {
         return sseSubscriber.subscribe(customerId);
     }
 
-    @GetMapping(
-            value = "/usage/sse/test/{customerId}",
-            produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "가족 총 데이터 사용량 조회 테스트")
-    public SseEmitter getCurrentUsageV2(@PathVariable Long customerId) {
-
+    @GetMapping(value = "/stream/test/{customerId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "실시간 이벤트 스트림 테스트")
+    public SseEmitter getEventStreamTest(@PathVariable Long customerId) {
         return sseSubscriber.subscribe(customerId);
     }
 }

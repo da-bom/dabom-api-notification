@@ -39,7 +39,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/auth/**",
                         "/admin/auth/login",
-                        "/families/usage/sse/test/**",
+                        "/events/stream/test/**",
                         "/swagger-ui/**",
                         "/push/vapid-public-key",
                         "/v3/api-docs/**",
