@@ -35,20 +35,18 @@ import com.project.domain.notification.repository.NotificationLogRepository;
 import com.project.domain.usagerecord.infra.sse.SsePublisher;
 import com.project.domain.webpush.service.WebPushService;
 import com.project.global.exception.ApplicationException;
-import com.project.global.util.CursorUtil;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("NotificationServiceImpl 단위 테스트")
-class NotificationServiceImplTest {
+@DisplayName("NotificationEventServiceImpl 단위 테스트")
+class NotificationEventServiceImplTest {
 
     @Mock private NotificationLogRepository notificationLogRepository;
     @Mock private FamilyMemberRepository familyMemberRepository;
     @Mock private WebPushService webPushService;
     @Mock private SsePublisher ssePublisher;
     @Mock private ObjectMapper objectMapper;
-    @Mock private CursorUtil cursorUtil;
 
-    @InjectMocks private NotificationServiceImpl notificationService;
+    @InjectMocks private NotificationEventServiceImpl notificationEventService;
 
     @Captor private ArgumentCaptor<NotificationLog> logCaptor;
 
@@ -77,7 +75,7 @@ class NotificationServiceImplTest {
             when(objectMapper.writeValueAsString(payload.data()))
                     .thenReturn("{\"thresholdPercent\":50}");
 
-            notificationService.handleNotificationEvent(payload, SENT_AT);
+            notificationEventService.handleNotificationEvent(payload, SENT_AT);
 
             verify(notificationLogRepository, times(2)).save(logCaptor.capture());
             List<NotificationLog> allSaved = logCaptor.getAllValues();
@@ -113,7 +111,7 @@ class NotificationServiceImplTest {
                     .when(webPushService)
                     .sendToFamily(anyLong(), anyString(), anyString());
 
-            notificationService.handleNotificationEvent(payload, SENT_AT);
+            notificationEventService.handleNotificationEvent(payload, SENT_AT);
 
             verify(notificationLogRepository).save(any(NotificationLog.class));
         }
@@ -137,7 +135,7 @@ class NotificationServiceImplTest {
             when(objectMapper.writeValueAsString(payload.data()))
                     .thenReturn("{\"blockReason\":\"MONTHLY_LIMIT_EXCEEDED\"}");
 
-            notificationService.handleNotificationEvent(payload, SENT_AT);
+            notificationEventService.handleNotificationEvent(payload, SENT_AT);
 
             verify(notificationLogRepository).save(logCaptor.capture());
             NotificationLog saved = logCaptor.getValue();
@@ -163,7 +161,7 @@ class NotificationServiceImplTest {
                     .when(webPushService)
                     .sendToUser(anyLong(), anyString(), anyString());
 
-            notificationService.handleNotificationEvent(payload, SENT_AT);
+            notificationEventService.handleNotificationEvent(payload, SENT_AT);
 
             verify(notificationLogRepository).save(any(NotificationLog.class));
         }
@@ -187,7 +185,10 @@ class NotificationServiceImplTest {
             when(objectMapper.writeValueAsString(payload.data()))
                     .thenThrow(new JsonProcessingException("serialize error") {});
 
-            assertThatThrownBy(() -> notificationService.handleNotificationEvent(payload, SENT_AT))
+            assertThatThrownBy(
+                            () ->
+                                    notificationEventService.handleNotificationEvent(
+                                            payload, SENT_AT))
                     .isInstanceOf(ApplicationException.class);
         }
     }
