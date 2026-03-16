@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,9 +21,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
+import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.notification.dto.NotificationSlice;
 import com.project.domain.notification.entity.NotificationLog;
+import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
 import com.project.global.exception.ApplicationException;
 import com.project.global.util.CursorUtil;
@@ -32,6 +34,7 @@ import com.project.global.util.CursorUtil;
 class NotificationServiceImplTest {
 
     @Mock private NotificationLogRepository notificationLogRepository;
+    @Mock private FamilyMemberRepository familyMemberRepository;
     @Mock private CursorUtil cursorUtil;
 
     @InjectMocks private NotificationServiceImpl notificationService;
@@ -205,6 +208,45 @@ class NotificationServiceImplTest {
                                     notificationService.deleteNotification(
                                             NOTIFICATION_ID, CUSTOMER_ID))
                     .isInstanceOf(ApplicationException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("saveAdminPushNotification")
+    class SaveAdminPushNotification {
+
+        @Test
+        @DisplayName("관리자 푸시 알림을 ADMIN_PUSH 타입으로 저장")
+        void savesNotificationWithAdminPushType() {
+            when(familyMemberRepository.findFamilyIdByCustomerId(CUSTOMER_ID))
+                    .thenReturn(Optional.of(FAMILY_ID));
+
+            notificationService.saveAdminPushNotification(CUSTOMER_ID, "공지", "서버 점검 안내");
+
+            org.mockito.ArgumentCaptor<NotificationLog> captor =
+                    org.mockito.ArgumentCaptor.forClass(NotificationLog.class);
+            verify(notificationLogRepository).save(captor.capture());
+            NotificationLog saved = captor.getValue();
+            assertThat(saved.getCustomerId()).isEqualTo(CUSTOMER_ID);
+            assertThat(saved.getFamilyId()).isEqualTo(FAMILY_ID);
+            assertThat(saved.getType()).isEqualTo(NotificationType.ADMIN_PUSH);
+            assertThat(saved.getTitle()).isEqualTo("공지");
+            assertThat(saved.getMessage()).isEqualTo("서버 점검 안내");
+        }
+
+        @Test
+        @DisplayName("가족 정보 없으면 예외 발생")
+        void throwsWhenFamilyNotFound() {
+            when(familyMemberRepository.findFamilyIdByCustomerId(CUSTOMER_ID))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(
+                            () ->
+                                    notificationService.saveAdminPushNotification(
+                                            CUSTOMER_ID, "공지", "메시지"))
+                    .isInstanceOf(ApplicationException.class);
+
+            verify(notificationLogRepository, never()).save(any());
         }
     }
 }

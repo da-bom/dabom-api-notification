@@ -2,8 +2,8 @@ package com.project.domain.notification.service;
 
 import java.util.List;
 
-import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
 import com.project.domain.notification.dto.NotificationSlice;
+import com.project.domain.notification.entity.NotificationType;
 
 public interface NotificationService {
 
@@ -17,4 +17,6 @@ public interface NotificationService {
     void markAllAsRead(Long customerId);
 
     void deleteNotification(Long notificationId, Long customerId);
+
+    void saveAdminPushNotification(Long customerId, String title, String message);
 }

@@ -7,9 +7,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
+import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.notification.dto.NotificationSlice;
 import com.project.domain.notification.entity.NotificationLog;
+import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
 import com.project.global.exception.ApplicationException;
 import com.project.global.exception.code.NotificationErrorCode;
@@ -24,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationLogRepository notificationLogRepository;
+    private final FamilyMemberRepository familyMemberRepository;
     private final CursorUtil cursorUtil;
 
     @Value("${app.notification.retention-days}")
@@ -82,6 +84,28 @@ public class NotificationServiceImpl implements NotificationService {
     public void deleteNotification(Long notificationId, Long customerId) {
         NotificationLog notification = findOwnedNotification(notificationId, customerId);
         notification.softDelete();
+    }
+
+    @Transactional
+    @Override
+    public void saveAdminPushNotification(Long customerId, String title, String message) {
+        Long familyId =
+                familyMemberRepository
+                        .findFamilyIdByCustomerId(customerId)
+                        .orElseThrow(
+                                () ->
+                                        new ApplicationException(
+                                                NotificationErrorCode.NOTIFICATION_SAVE_FAILED));
+
+        notificationLogRepository.save(
+                NotificationLog.builder()
+                        .customerId(customerId)
+                        .familyId(familyId)
+                        .type(NotificationType.ADMIN_PUSH)
+                        .title(title)
+                        .message(message)
+                        .sentAt(LocalDateTime.now())
+                        .build());
     }
 
     private NotificationLog findOwnedNotification(Long notificationId, Long customerId) {
