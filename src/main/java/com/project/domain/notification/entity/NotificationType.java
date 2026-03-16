@@ -1,0 +1,18 @@
+package com.project.domain.notification.entity;
+
+public enum NotificationType {
+    QUOTA_UPDATED,
+    THRESHOLD_ALERT,
+    CUSTOMER_BLOCKED,
+    CUSTOMER_UNBLOCKED,
+    POLICY_CHANGED,
+    MISSION_CREATED,
+    REWARD_REQUESTED,
+    REWARD_APPROVED,
+    REWARD_REJECTED,
+    APPEAL_CREATED,
+    APPEAL_APPROVED,
+    APPEAL_REJECTED,
+    EMERGENCY_APPROVED,
+    ADMIN_PUSH;
+}

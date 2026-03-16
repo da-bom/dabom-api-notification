@@ -26,11 +26,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.dabom.messaging.kafka.event.dto.notification.NotificationPayload;
-import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.notification.entity.NotificationLog;
+import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
 import com.project.domain.usagerecord.infra.sse.SsePublisher;
 import com.project.domain.webpush.service.WebPushService;
@@ -66,7 +66,8 @@ class NotificationEventServiceImplTest {
                     new NotificationPayload(
                             FAMILY_ID,
                             null,
-                            NotificationType.THRESHOLD_ALERT,
+                            com.dabom.messaging.kafka.event.dto.notification.NotificationType
+                                    .THRESHOLD_ALERT,
                             "데이터 경고",
                             "데이터 50% 사용",
                             Map.of("thresholdPercent", 50));
@@ -100,7 +101,8 @@ class NotificationEventServiceImplTest {
                     new NotificationPayload(
                             FAMILY_ID,
                             null,
-                            NotificationType.THRESHOLD_ALERT,
+                            com.dabom.messaging.kafka.event.dto.notification.NotificationType
+                                    .THRESHOLD_ALERT,
                             "데이터 경고",
                             "데이터 50% 사용",
                             Map.of());
@@ -128,7 +130,8 @@ class NotificationEventServiceImplTest {
                     new NotificationPayload(
                             FAMILY_ID,
                             CUSTOMER_ID_1,
-                            NotificationType.CUSTOMER_BLOCKED,
+                            com.dabom.messaging.kafka.event.dto.notification.NotificationType
+                                    .CUSTOMER_BLOCKED,
                             "데이터 차단",
                             "데이터 사용이 차단되었습니다.",
                             Map.of("blockReason", "MONTHLY_LIMIT_EXCEEDED"));
@@ -152,7 +155,8 @@ class NotificationEventServiceImplTest {
                     new NotificationPayload(
                             FAMILY_ID,
                             CUSTOMER_ID_1,
-                            NotificationType.CUSTOMER_BLOCKED,
+                            com.dabom.messaging.kafka.event.dto.notification.NotificationType
+                                    .CUSTOMER_BLOCKED,
                             "데이터 차단",
                             "차단됨",
                             Map.of());
@@ -178,7 +182,8 @@ class NotificationEventServiceImplTest {
                     new NotificationPayload(
                             FAMILY_ID,
                             null,
-                            NotificationType.THRESHOLD_ALERT,
+                            com.dabom.messaging.kafka.event.dto.notification.NotificationType
+                                    .THRESHOLD_ALERT,
                             "데이터 경고",
                             "msg",
                             Map.of());

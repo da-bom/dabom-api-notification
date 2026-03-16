@@ -10,11 +10,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
 import com.project.domain.notification.dto.NotificationSlice;
 import com.project.domain.notification.dto.response.NotificationListResponse;
 import com.project.domain.notification.dto.response.NotificationResponse;
 import com.project.domain.notification.dto.response.UnreadCountResponse;
+import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.service.NotificationService;
 import com.project.global.api.response.ApiResponse;
 import com.project.global.auth.aop.CustomerId;
