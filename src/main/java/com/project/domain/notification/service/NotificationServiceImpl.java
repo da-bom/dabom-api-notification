@@ -95,7 +95,8 @@ public class NotificationServiceImpl implements NotificationService {
                         .orElseThrow(
                                 () ->
                                         new ApplicationException(
-                                                NotificationErrorCode.NOTIFICATION_SAVE_FAILED));
+                                                NotificationErrorCode
+                                                        .TARGET_CUSTOMER_NOT_IN_FAMILY));
 
         notificationLogRepository.save(
                 NotificationLog.builder()
