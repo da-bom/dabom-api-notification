@@ -27,6 +27,7 @@ import com.project.domain.notification.entity.NotificationLog;
 import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
 import com.project.global.exception.ApplicationException;
+import com.project.global.exception.code.NotificationErrorCode;
 import com.project.global.util.CursorUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -244,7 +245,13 @@ class NotificationServiceImplTest {
                             () ->
                                     notificationService.saveAdminPushNotification(
                                             CUSTOMER_ID, "공지", "메시지"))
-                    .isInstanceOf(ApplicationException.class);
+                    .isInstanceOf(ApplicationException.class)
+                    .satisfies(
+                            ex ->
+                                    assertThat(((ApplicationException) ex).getCode())
+                                            .isEqualTo(
+                                                    NotificationErrorCode
+                                                            .TARGET_CUSTOMER_NOT_IN_FAMILY));
 
             verify(notificationLogRepository, never()).save(any());
         }
