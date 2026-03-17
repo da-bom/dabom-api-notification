@@ -16,6 +16,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.jose4j.lang.JoseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -97,7 +98,7 @@ public class WebPushServiceImpl implements WebPushService {
         pushSubscriptionRepository.delete(subscription);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
     @Override
     public void sendToUser(Long customerId, String title, String message) {
         PushSubscription subscription =
@@ -111,7 +112,7 @@ public class WebPushServiceImpl implements WebPushService {
         sendPushNotification(subscription, title, message);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
     @Override
     public void sendToFamily(Long familyId, String title, String message) {
         List<Long> customerIds = familyMemberRepository.findCustomerIdsByFamilyId(familyId);

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.domain.notification.service.NotificationService;
 import com.project.domain.webpush.dto.request.AdminPushRequest;
 import com.project.domain.webpush.dto.request.PushSubscriptionRequest;
 import com.project.domain.webpush.dto.response.VapidPublicKeyResponse;
@@ -29,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 public class WebPushController {
 
     private final WebPushService webPushService;
+    private final NotificationService notificationService;
 
     @GetMapping("/vapid-public-key")
     public ApiResponse<VapidPublicKeyResponse> getVapidPublicKey() {
@@ -53,6 +55,8 @@ public class WebPushController {
     @PostMapping("/send")
     public ApiResponse<Void> sendPushMessage(@Valid @RequestBody AdminPushRequest request) {
         log.info("Push message send requested for customerId={}", request.customerId());
+        notificationService.saveAdminPushNotification(
+                request.customerId(), request.title(), request.message());
         webPushService.sendToUser(request.customerId(), request.title(), request.message());
         return ApiResponse.success(null);
     }

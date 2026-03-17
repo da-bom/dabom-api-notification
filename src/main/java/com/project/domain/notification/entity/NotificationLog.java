@@ -11,7 +11,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
 import com.project.global.util.BaseEntity;
 
 import lombok.AccessLevel;

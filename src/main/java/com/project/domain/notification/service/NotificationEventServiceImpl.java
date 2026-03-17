@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.notification.entity.NotificationLog;
+import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
 import com.project.domain.usagerecord.infra.sse.SsePublisher;
 import com.project.domain.webpush.service.WebPushService;
@@ -66,7 +67,7 @@ public class NotificationEventServiceImpl implements NotificationEventService {
                 NotificationLog.builder()
                         .customerId(customerId)
                         .familyId(payload.familyId())
-                        .type(payload.type())
+                        .type(NotificationType.from(payload.type()))
                         .title(payload.title())
                         .message(payload.message())
                         .payload(payloadJson)

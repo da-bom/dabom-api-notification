@@ -3,8 +3,8 @@ package com.project.domain.notification.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.dabom.messaging.kafka.event.dto.notification.NotificationType;
 import com.project.domain.notification.entity.NotificationLog;
+import com.project.domain.notification.entity.NotificationType;
 
 public interface NotificationLogRepositoryCustom {
 
