@@ -67,22 +67,12 @@ public class NotificationEventServiceImpl implements NotificationEventService {
                 NotificationLog.builder()
                         .customerId(customerId)
                         .familyId(payload.familyId())
-                        .type(toLocalNotificationType(payload.type()))
+                        .type(NotificationType.from(payload.type()))
                         .title(payload.title())
                         .message(payload.message())
                         .payload(payloadJson)
                         .sentAt(sentAt)
                         .build());
-    }
-
-    private NotificationType toLocalNotificationType(
-            com.dabom.messaging.kafka.event.dto.notification.NotificationType libType) {
-        try {
-            return NotificationType.valueOf(libType.name());
-        } catch (IllegalArgumentException e) {
-            log.warn("지원하지 않는 Kafka 알림 타입: {}", libType.name());
-            throw new ApplicationException(NotificationErrorCode.NOTIFICATION_SAVE_FAILED);
-        }
     }
 
     private String serializePayload(Object payload) {
