@@ -42,7 +42,7 @@ public class WebPushController {
             @Parameter(hidden = true) @CustomerId Long customerId,
             @Valid @RequestBody PushSubscriptionRequest subscriptionRequest) {
         webPushService.subscribe(subscriptionRequest, customerId);
-        return ApiResponse.created(null);
+        return ApiResponse.success(null);
     }
 
     @DeleteMapping("/subscribe")
