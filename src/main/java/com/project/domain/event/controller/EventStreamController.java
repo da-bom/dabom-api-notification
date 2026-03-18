@@ -12,7 +12,6 @@ import com.project.domain.usagerecord.infra.sse.SseSubscriber;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,20 +24,18 @@ public class EventStreamController {
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "실시간 이벤트 스트림 (SSE)")
-    @ApiResponses(
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200",
-                    description = "SSE 스트림 연결 성공"))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "SSE 스트림 연결 성공")
     public SseEmitter getEventStream(@Parameter(hidden = true) @CustomerId Long customerId) {
         return sseSubscriber.subscribe(customerId);
     }
 
     @GetMapping(value = "/stream/test/{customerId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "실시간 이벤트 스트림 테스트")
-    @ApiResponses(
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200",
-                    description = "SSE 테스트 스트림 연결 성공"))
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "SSE 테스트 스트림 연결 성공")
     public SseEmitter getEventStreamTest(@PathVariable Long customerId) {
         return sseSubscriber.subscribe(customerId);
     }
