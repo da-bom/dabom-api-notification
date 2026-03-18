@@ -1,7 +1,5 @@
 package com.project.common.exception;
 
-import jakarta.servlet.http.HttpServletRequest;
-
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -23,8 +21,7 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
 
     /** BaseException - 도메인 예외 (ex: ApplicationException) */
     @ExceptionHandler(BaseException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBaseException(
-            BaseException e, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleBaseException(BaseException e) {
         BaseErrorCode code = e.getCode();
         log.error("[BaseException] {} - {}", code.name(), code.getMessage());
 
@@ -34,8 +31,7 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
 
     /** 그 외 모든 예외 */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleUnhandledException(
-            Exception e, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleUnhandledException(Exception e) {
         log.error("[Exception] Unhandled: {}", e.getMessage(), e);
 
         GlobalErrorCode code = GlobalErrorCode.INTERNAL_SERVER_ERROR;
@@ -56,7 +52,7 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
 
         GlobalErrorCode code = GlobalErrorCode.INVALID_INPUT_VALUE;
         ApiResponse<Void> response =
-                ApiResponse.fail(code.getCustomCode(), code.getMessage(), null);
+                ApiResponse.fail(code.getCustomCode(), code.getMessage(), ex.getMessage());
 
         return ResponseEntity.status(statusCode).headers(headers).body(response);
     }
