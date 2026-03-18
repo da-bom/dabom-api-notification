@@ -9,14 +9,14 @@ import org.springframework.transaction.annotation.Transactional;
 import com.dabom.messaging.kafka.event.dto.notification.NotificationPayload;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.NotificationErrorCode;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.notification.entity.NotificationLog;
 import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
 import com.project.domain.usagerecord.infra.sse.SsePublisher;
 import com.project.domain.webpush.service.WebPushService;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.NotificationErrorCode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -3,9 +3,9 @@ package com.project.domain.usagerecord.infra.sse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.FamilyErrorCode;
 import com.project.domain.family.repository.FamilyMemberRepository;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.FamilyErrorCode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
