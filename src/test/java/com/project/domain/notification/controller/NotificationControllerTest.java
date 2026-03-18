@@ -19,22 +19,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.MethodParameter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.bind.support.WebDataBinderFactory;
-import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.method.support.ModelAndViewContainer;
 
-import com.project.common.auth.aop.CustomerId;
+import com.project.common.support.StubCustomerIdResolver;
 import com.project.domain.notification.dto.NotificationSlice;
 import com.project.domain.notification.service.NotificationService;
 
 @ExtendWith(MockitoExtension.class)
 class NotificationControllerTest {
-
-    private static final Long CUSTOMER_ID = 1L;
 
     @Mock private NotificationService notificationService;
 
@@ -98,25 +91,5 @@ class NotificationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").doesNotExist());
-    }
-
-    /**
-     * @CustomerId 파라미터를 고정값으로 주입하는 스텁 리졸버
-     */
-    static class StubCustomerIdResolver implements HandlerMethodArgumentResolver {
-
-        @Override
-        public boolean supportsParameter(MethodParameter parameter) {
-            return parameter.hasParameterAnnotation(CustomerId.class);
-        }
-
-        @Override
-        public Object resolveArgument(
-                MethodParameter parameter,
-                ModelAndViewContainer mavContainer,
-                NativeWebRequest webRequest,
-                WebDataBinderFactory binderFactory) {
-            return CUSTOMER_ID;
-        }
     }
 }
