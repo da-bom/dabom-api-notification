@@ -1,9 +1,7 @@
 package com.project.domain.notification.controller;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -38,11 +36,9 @@ class NotificationControllerTest {
 
     private static final Long CUSTOMER_ID = 1L;
 
-    @Mock
-    private NotificationService notificationService;
+    @Mock private NotificationService notificationService;
 
-    @InjectMocks
-    private NotificationController notificationController;
+    @InjectMocks private NotificationController notificationController;
 
     private MockMvc mockMvc;
 
@@ -104,7 +100,9 @@ class NotificationControllerTest {
                 .andExpect(jsonPath("$.data").doesNotExist());
     }
 
-    /** @CustomerId 파라미터를 고정값으로 주입하는 스텁 리졸버 */
+    /**
+     * @CustomerId 파라미터를 고정값으로 주입하는 스텁 리졸버
+     */
     static class StubCustomerIdResolver implements HandlerMethodArgumentResolver {
 
         @Override

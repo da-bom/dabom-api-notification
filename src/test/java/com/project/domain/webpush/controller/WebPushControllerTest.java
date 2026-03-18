@@ -1,6 +1,5 @@
 package com.project.domain.webpush.controller;
 
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,14 +32,11 @@ class WebPushControllerTest {
 
     private static final Long CUSTOMER_ID = 1L;
 
-    @Mock
-    private WebPushService webPushService;
+    @Mock private WebPushService webPushService;
 
-    @Mock
-    private NotificationService notificationService;
+    @Mock private NotificationService notificationService;
 
-    @InjectMocks
-    private WebPushController webPushController;
+    @InjectMocks private WebPushController webPushController;
 
     private MockMvc mockMvc;
 
@@ -116,7 +112,9 @@ class WebPushControllerTest {
                 .andExpect(jsonPath("$.data").doesNotExist());
     }
 
-    /** @CustomerId 파라미터를 고정값으로 주입하는 스텁 리졸버 */
+    /**
+     * @CustomerId 파라미터를 고정값으로 주입하는 스텁 리졸버
+     */
     static class StubCustomerIdResolver implements HandlerMethodArgumentResolver {
 
         @Override
