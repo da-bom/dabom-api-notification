@@ -9,14 +9,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.project.common.api.response.ApiResponse;
+import com.project.common.auth.aop.AdminOnly;
+import com.project.common.auth.aop.CustomerId;
 import com.project.domain.notification.service.NotificationService;
 import com.project.domain.webpush.dto.request.AdminPushRequest;
 import com.project.domain.webpush.dto.request.PushSubscriptionRequest;
 import com.project.domain.webpush.dto.response.VapidPublicKeyResponse;
 import com.project.domain.webpush.service.WebPushService;
-import com.project.global.api.response.ApiResponse;
-import com.project.global.auth.aop.AdminOnly;
-import com.project.global.auth.aop.CustomerId;
 
 import io.swagger.v3.oas.annotations.Parameter;
 

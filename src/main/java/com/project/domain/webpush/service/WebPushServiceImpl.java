@@ -21,13 +21,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.SubscriptionErrorCode;
+import com.project.common.util.NetworkValidator;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.webpush.dto.request.PushSubscriptionRequest;
 import com.project.domain.webpush.entity.PushSubscription;
 import com.project.domain.webpush.repository.PushSubscriptionRepository;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.SubscriptionErrorCode;
-import com.project.global.util.NetworkValidator;
 
 import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.Notification;

@@ -28,13 +28,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.dabom.messaging.kafka.event.dto.notification.NotificationPayload;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.common.exception.ApplicationException;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.notification.entity.NotificationLog;
 import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
 import com.project.domain.usagerecord.infra.sse.SsePublisher;
 import com.project.domain.webpush.service.WebPushService;
-import com.project.global.exception.ApplicationException;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("NotificationEventServiceImpl 단위 테스트")

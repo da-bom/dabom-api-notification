@@ -21,14 +21,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.project.common.exception.ApplicationException;
+import com.project.common.exception.code.NotificationErrorCode;
+import com.project.common.util.CursorUtil;
 import com.project.domain.family.repository.FamilyMemberRepository;
 import com.project.domain.notification.dto.NotificationSlice;
 import com.project.domain.notification.entity.NotificationLog;
 import com.project.domain.notification.entity.NotificationType;
 import com.project.domain.notification.repository.NotificationLogRepository;
-import com.project.global.exception.ApplicationException;
-import com.project.global.exception.code.NotificationErrorCode;
-import com.project.global.util.CursorUtil;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("NotificationServiceImpl 단위 테스트")
