@@ -1,7 +1,12 @@
 package com.project.domain.usagerecord.infra.sse;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -29,12 +34,22 @@ public class PollingService {
 
     private final ConcurrentHashMap<Long, Long> lastSeenUsedBytes = new ConcurrentHashMap<>();
 
-    // 1) 활성 familyId를 순회하며 DB에서 최신 사용량을 조회합니다.
-    // 2) 이전 값과 다를 때만 SSE로 전송합니다.
+    // 1) 활성 familyId 전체를 일괄 조회하여 N+1 문제를 방지합니다.
+    // 2) 이전 값과 다른 family만 필터링하여 SSE로 전송합니다.
     @Scheduled(fixedDelay = 1000)
     public void pollAndPushIfChanged() {
-        for (Long familyId : emitterRegistry.activeFamilyIds()) {
-            Family family = familyRepository.findById(familyId).orElse(null);
+        Set<Long> activeFamilyIds = emitterRegistry.activeFamilyIds();
+        if (activeFamilyIds.isEmpty()) {
+            return;
+        }
+
+        Map<Long, Family> familiesById =
+                familyRepository.findAllById(activeFamilyIds).stream()
+                        .collect(Collectors.toMap(Family::getId, Function.identity()));
+
+        List<Long> changedFamilyIds = new ArrayList<>();
+        for (Long familyId : activeFamilyIds) {
+            Family family = familiesById.get(familyId);
             if (family == null) {
                 lastSeenUsedBytes.remove(familyId);
                 continue;
@@ -45,6 +60,7 @@ public class PollingService {
 
             if (prev == null || prev.longValue() != usedBytes) {
                 lastSeenUsedBytes.put(familyId, usedBytes);
+                changedFamilyIds.add(familyId);
 
                 long totalQuotaBytes = family.getTotalQuotaBytes();
                 long remainingBytes = totalQuotaBytes - usedBytes;
@@ -53,16 +69,26 @@ public class PollingService {
                         new RealtimeTotalUsageResponse(
                                 familyId, usedBytes, totalQuotaBytes, remainingBytes);
                 emitterRegistry.send(familyId, "usage-updated", totalResponse);
+            }
+        }
 
-                List<CustomerQuota> quotas = customerQuotaRepository.findByFamilyId(familyId);
-                for (CustomerQuota quota : quotas) {
-                    RealtimeUsageByMemberResponse memberResponse =
-                            new RealtimeUsageByMemberResponse(
-                                    familyId,
-                                    quota.getCustomerId(),
-                                    quota.getMonthlyUsedBytes());
-                    emitterRegistry.send(familyId, "usage-updated-by-member", memberResponse);
-                }
+        if (changedFamilyIds.isEmpty()) {
+            return;
+        }
+
+        Map<Long, List<CustomerQuota>> quotasByFamilyId =
+                customerQuotaRepository.findByFamilyIdIn(changedFamilyIds).stream()
+                        .collect(Collectors.groupingBy(CustomerQuota::getFamilyId));
+
+        for (Long familyId : changedFamilyIds) {
+            List<CustomerQuota> quotas = quotasByFamilyId.getOrDefault(familyId, List.of());
+            for (CustomerQuota quota : quotas) {
+                RealtimeUsageByMemberResponse memberResponse =
+                        new RealtimeUsageByMemberResponse(
+                                familyId,
+                                quota.getCustomerId(),
+                                quota.getMonthlyUsedBytes());
+                emitterRegistry.send(familyId, "usage-updated-by-member", memberResponse);
             }
         }
     }
