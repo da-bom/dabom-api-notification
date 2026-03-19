@@ -83,7 +83,9 @@ class ExceptionAdviceTest {
         }
 
         @PostMapping("/test/validation")
-        public void validation(@Valid @RequestBody StubRequest request) {}
+        public void validation(@Valid @RequestBody StubRequest request) {
+            // 유효성 검증 실패를 유도하기 위한 빈 구현 (요청 바인딩만 수행)
+        }
     }
 
     record StubRequest(@NotBlank String name) {}
