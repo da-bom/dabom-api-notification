@@ -47,8 +47,6 @@ spring:
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP_ID:dabom-api-notification}
       auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:earliest}
-    broadcast:
-      group-id-prefix: ${KAFKA_BROADCAST_GROUP_PREFIX:usage-realtime}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
