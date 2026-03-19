@@ -27,6 +27,8 @@ import lombok.extern.slf4j.Slf4j;
 public class PollingService {
 
     private static final long HEARTBEAT_DELAY_MS = 25_000L;
+    private static final String EVENT_USAGE_UPDATED = "usage-updated";
+    private static final String EVENT_USAGE_UPDATED_BY_MEMBER = "usage-updated-by-member";
 
     private final EmitterRegistry emitterRegistry;
     private final FamilyRepository familyRepository;
@@ -56,7 +58,7 @@ public class PollingService {
             }
 
             long usedBytes = family.getUsedBytes();
-            Long prev = lastSeenUsedBytes.putIfAbsent(familyId, usedBytes);
+            Long prev = lastSeenUsedBytes.get(familyId);
 
             if (prev == null || prev.longValue() != usedBytes) {
                 lastSeenUsedBytes.put(familyId, usedBytes);
@@ -68,7 +70,7 @@ public class PollingService {
                 RealtimeTotalUsageResponse totalResponse =
                         new RealtimeTotalUsageResponse(
                                 familyId, usedBytes, totalQuotaBytes, remainingBytes);
-                emitterRegistry.send(familyId, "usage-updated", totalResponse);
+                emitterRegistry.send(familyId, EVENT_USAGE_UPDATED, totalResponse);
             }
         }
 
@@ -88,7 +90,7 @@ public class PollingService {
                                 familyId,
                                 quota.getCustomerId(),
                                 quota.getMonthlyUsedBytes());
-                emitterRegistry.send(familyId, "usage-updated-by-member", memberResponse);
+                emitterRegistry.send(familyId, EVENT_USAGE_UPDATED_BY_MEMBER, memberResponse);
             }
         }
     }
