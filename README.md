@@ -478,14 +478,3 @@ cp .env.example .env
 **Actuator 노출 엔드포인트**: `health`, `info`, `prometheus`, `metrics`, `loggers`
 
 **메트릭 히스토그램 대상**: `http.server.requests`, `spring.data.repository.invocations`, `kafka.consumer.processing.time`
-
----
-
-## 12. 📚 관련 문서
-
-- [기획서 (SPECIFICATION.md)](./SPECIFICATION.md)
-- [아키텍처 설계서 (ARCHITECTURE.md)](./ARCHITECTURE.md)
-- [API 명세서 (API_SPECIFICATION.md)](./API_SPECIFICATION.md)
-- [ERD 설계서 (ERD.md)](./ERD.md)
-- [Kafka 메시지 스키마](./designs/kafka/MESSAGE_SCHEMA.md)
-- [Redis Key 설계서](./designs/redis/KEY_DESIGN.md)
