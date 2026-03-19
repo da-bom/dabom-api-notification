@@ -4,7 +4,7 @@ DABOM 실시간 가족 데이터 통합 관리 시스템의 **알림 서비스**
 
 ---
 
-## 1. 시스템 내 위치
+## 1. 🏗️ 시스템 내 위치
 
 ```mermaid
 flowchart TB
@@ -33,7 +33,7 @@ flowchart TB
 
 ---
 
-## 2. 기술 스택
+## 2. 🛠️ 기술 스택
 
 | 영역 | 기술 | 버전 |
 |------|------|------|
@@ -51,9 +51,9 @@ flowchart TB
 
 ---
 
-## 3. 핵심 기능
+## 3. ⚡ 핵심 기능
 
-### 3.1 Kafka Consumer — 알림 이벤트 수신
+### 3.1 📨 Kafka Consumer — 알림 이벤트 수신
 
 `NotificationKafkaConsumer`가 `notification-events` 토픽을 소비한다.
 
@@ -74,7 +74,7 @@ flowchart TD
 
 **Consumer Group**: `dabom-api-notification` (application.yml 설정)
 
-### 3.2 알림 타입 (14종)
+### 3.2 🔔 알림 타입 (14종)
 
 | 카테고리 | 타입 | 발생 시점 |
 |---------|------|----------|
@@ -93,7 +93,7 @@ flowchart TD
 | 긴급요청 | `EMERGENCY_APPROVED` | 긴급 쿼터 자동승인 (→ Owner 사후알림) |
 | 관리자 | `ADMIN_PUSH` | 백오피스에서 직접 발송 |
 
-### 3.3 SSE 실시간 스트림
+### 3.3 📡 SSE 실시간 스트림
 
 클라이언트가 `GET /events/stream`으로 SSE 연결을 맺으면, 가족 단위로 이벤트를 실시간 수신한다.
 
@@ -127,7 +127,7 @@ flowchart TD
 - Heartbeat: 25초 주기로 `ping` 전송하여 프록시/로드밸런서 유휴 타임아웃 방지
 - 에러 콜백: broken pipe / client abort / EOF 감지 시 자동 정리
 
-### 3.4 Web Push (VAPID)
+### 3.4 🌐 Web Push (VAPID)
 
 RFC 8291 기반 Web Push Protocol을 구현하여 PWA 브라우저에 푸시 알림을 발송한다.
 
@@ -151,9 +151,9 @@ flowchart LR
 
 ---
 
-## 4. REST API
+## 4. 🔌 REST API
 
-### 4.1 Notifications (`/notifications`)
+### 4.1 🔔 Notifications (`/notifications`)
 
 | Method | Path | 권한 | 설명 |
 |--------|------|------|------|
@@ -176,14 +176,14 @@ flowchart LR
 - 30일 이전 알림은 조회 결과에서 자동 제외
 - 본인 알림만 조회 가능 (customerId JWT 기반 필터링)
 
-### 4.2 Events (`/events`)
+### 4.2 📡 Events (`/events`)
 
 | Method | Path | 권한 | 설명 |
 |--------|------|------|------|
 | `GET` | `/events/stream` | member | SSE 실시간 이벤트 스트림 |
 | `GET` | `/events/stream/test/{customerId}` | 없음 | 테스트용 SSE (인증 불필요) |
 
-### 4.3 Push (`/push`)
+### 4.3 🌐 Push (`/push`)
 
 | Method | Path | 권한 | 설명 |
 |--------|------|------|------|
@@ -192,7 +192,7 @@ flowchart LR
 | `DELETE` | `/push/subscribe` | member | 푸시 구독 해제 |
 | `POST` | `/push/send` | admin | 관리자 직접 푸시 발송 |
 
-### 4.4 응답 형식
+### 4.4 📦 응답 형식
 
 공통 래퍼 `ApiResponse<T>` 사용. `api-core`와 동일한 구조.
 
@@ -221,7 +221,7 @@ flowchart LR
 
 ---
 
-## 5. 에러 코드
+## 5. ❌ 에러 코드
 
 ### Notification
 
@@ -242,7 +242,7 @@ flowchart LR
 
 ---
 
-## 6. 데이터 모델
+## 6. 💾 데이터 모델
 
 ### 6.1 notification_log
 
@@ -289,7 +289,7 @@ Web Push 구독 정보. 고객당 최대 1건.
 
 ---
 
-## 7. 인증/인가
+## 7. 🔐 인증/인가
 
 JWT 토큰 기반. `LoginInterceptor`가 모든 요청에 대해 `Authorization: Bearer <token>` 헤더를 검증한다.
 
@@ -318,7 +318,7 @@ JWT 토큰 기반. `LoginInterceptor`가 모든 요청에 대해 `Authorization:
 
 ---
 
-## 8. 설정
+## 8. ⚙️ 설정
 
 ### 환경변수
 
@@ -352,7 +352,7 @@ JWT 토큰 기반. `LoginInterceptor`가 모든 요청에 대해 `Authorization:
 
 ---
 
-## 9. 프로젝트 구조
+## 9. 📂 프로젝트 구조
 
 ```
 src/main/java/com/project/
@@ -442,7 +442,7 @@ src/main/java/com/project/
 
 ---
 
-## 10. 실행
+## 10. 🚀 실행
 
 ```bash
 # 환경변수 설정 (.env 파일 또는 직접 export)
@@ -466,7 +466,7 @@ cp .env.example .env
 
 ---
 
-## 11. Observability
+## 11. 📊 Observability
 
 | 영역 | 도구 | 설정 |
 |------|------|------|
@@ -481,7 +481,7 @@ cp .env.example .env
 
 ---
 
-## 12. 관련 문서
+## 12. 📚 관련 문서
 
 - [기획서 (SPECIFICATION.md)](./SPECIFICATION.md)
 - [아키텍처 설계서 (ARCHITECTURE.md)](./ARCHITECTURE.md)
