@@ -7,7 +7,7 @@ cors:
 
 spring:
   application:
-    name: backend
+    name: api-notification
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
 
@@ -68,6 +68,16 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        spring.data.repository.invocations: true
+        kafka.consumer.processing.time: true
+        kafka.consumer.producer-to-consumer.latency: true
+      minimum-expected-value:
+        http.server.requests: 1ms
+      maximum-expected-value:
+        http.server.requests: 10s
   otlp:
     metrics:
       export:
