@@ -49,18 +49,20 @@ class PollingServiceTest {
     void pollAndPushIfChanged_sendsEvents_whenUsageChanged() {
         // given
         Long familyId = 1L;
-        Family family = Family.builder()
-                .id(familyId)
-                .name("test")
-                .createdById(1L)
-                .totalQuotaBytes(10000L)
-                .usedBytes(3000L)
-                .build();
-        CustomerQuota quota = CustomerQuota.builder()
-                .customerId(10L)
-                .familyId(familyId)
-                .monthlyUsedBytes(3000L)
-                .build();
+        Family family =
+                Family.builder()
+                        .id(familyId)
+                        .name("test")
+                        .createdById(1L)
+                        .totalQuotaBytes(10000L)
+                        .usedBytes(3000L)
+                        .build();
+        CustomerQuota quota =
+                CustomerQuota.builder()
+                        .customerId(10L)
+                        .familyId(familyId)
+                        .monthlyUsedBytes(3000L)
+                        .build();
 
         when(emitterRegistry.activeFamilyIds()).thenReturn(Set.of(familyId));
         when(familyRepository.findAllById(Set.of(familyId))).thenReturn(List.of(family));
@@ -88,18 +90,18 @@ class PollingServiceTest {
     void pollAndPushIfChanged_doesNotSendEvents_whenUsageUnchanged() {
         // given
         Long familyId = 1L;
-        Family family = Family.builder()
-                .id(familyId)
-                .name("test")
-                .createdById(1L)
-                .totalQuotaBytes(10000L)
-                .usedBytes(3000L)
-                .build();
+        Family family =
+                Family.builder()
+                        .id(familyId)
+                        .name("test")
+                        .createdById(1L)
+                        .totalQuotaBytes(10000L)
+                        .usedBytes(3000L)
+                        .build();
 
         when(emitterRegistry.activeFamilyIds()).thenReturn(Set.of(familyId));
         when(familyRepository.findAllById(Set.of(familyId))).thenReturn(List.of(family));
-        when(customerQuotaRepository.findByFamilyIdIn(List.of(familyId)))
-                .thenReturn(List.of());
+        when(customerQuotaRepository.findByFamilyIdIn(List.of(familyId))).thenReturn(List.of());
 
         // 첫 호출: 초기값 설정
         pollingService.pollAndPushIfChanged();
