@@ -1,13 +1,15 @@
 package com.project.common.exception;
 
-import jakarta.servlet.http.HttpServletRequest;
-
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import com.project.common.api.response.ApiResponse;
 import com.project.common.exception.code.BaseErrorCode;
 import com.project.common.exception.code.GlobalErrorCode;
 
@@ -19,27 +21,39 @@ public class ExceptionAdvice extends ResponseEntityExceptionHandler {
 
     /** BaseException - 도메인 예외 (ex: ApplicationException) */
     @ExceptionHandler(BaseException.class)
-    public ResponseEntity<Object> handleBaseException(BaseException e, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleBaseException(BaseException e) {
         BaseErrorCode code = e.getCode();
         log.error("[BaseException] {} - {}", code.name(), code.getMessage());
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        code.getHttpStatus().value(), code.getCustomCode(), code.getMessage());
-
-        return ResponseEntity.status(code.getHttpStatus()).body(response);
+        return ResponseEntity.status(code.getHttpStatus())
+                .body(ApiResponse.fail(code.getCustomCode(), code.getMessage(), null));
     }
 
     /** 그 외 모든 예외 */
-    public ResponseEntity<Object> handleUnhandledException(Exception e, WebRequest request) {
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnhandledException(Exception e) {
         log.error("[Exception] Unhandled: {}", e.getMessage(), e);
 
         GlobalErrorCode code = GlobalErrorCode.INTERNAL_SERVER_ERROR;
 
-        ErrorResponse response =
-                new ErrorResponse(
-                        code.getHttpStatus().value(), code.getCustomCode(), code.getMessage());
+        return ResponseEntity.status(code.getHttpStatus())
+                .body(ApiResponse.fail(code.getCustomCode(), code.getMessage(), null));
+    }
 
-        return ResponseEntity.status(code.getHttpStatus()).body(response);
+    /** Spring MVC 예외 (MethodArgumentNotValid, HttpRequestMethodNotSupported 등) */
+    @Override
+    protected ResponseEntity<Object> handleExceptionInternal(
+            Exception ex,
+            @Nullable Object body,
+            HttpHeaders headers,
+            HttpStatusCode statusCode,
+            WebRequest request) {
+        log.error("[Spring MVC Exception] {}: {}", ex.getClass().getSimpleName(), ex.getMessage());
+
+        GlobalErrorCode code = GlobalErrorCode.INVALID_INPUT_VALUE;
+        ApiResponse<Void> response =
+                ApiResponse.fail(code.getCustomCode(), code.getMessage(), ex.getMessage());
+
+        return ResponseEntity.status(statusCode).headers(headers).body(response);
     }
 }
