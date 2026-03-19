@@ -9,16 +9,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.project.domain.family.infra.cache.FamilyCacheRepository;
+import com.project.domain.customer.repository.CustomerQuotaRepository;
+import com.project.domain.family.repository.FamilyRepository;
 
 @ExtendWith(MockitoExtension.class)
 class PollingServiceTest {
 
     @Mock private EmitterRegistry emitterRegistry;
 
-    @Mock private FamilyCacheRepository familyCacheRepository;
+    @Mock private FamilyRepository familyRepository;
 
-    @Mock private SsePublisher ssePublisher;
+    @Mock private CustomerQuotaRepository customerQuotaRepository;
 
     @InjectMocks private PollingService pollingService;
 

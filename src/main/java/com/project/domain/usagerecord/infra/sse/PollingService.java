@@ -1,17 +1,22 @@
 package com.project.domain.usagerecord.infra.sse;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.dabom.messaging.kafka.event.dto.usage.UsageRealtimePayload;
-import com.project.domain.family.infra.cache.FamilyCacheRepository;
+import com.project.domain.customer.entity.CustomerQuota;
+import com.project.domain.customer.repository.CustomerQuotaRepository;
+import com.project.domain.family.entity.Family;
+import com.project.domain.family.repository.FamilyRepository;
+import com.project.domain.usagerecord.dto.response.RealtimeTotalUsageResponse;
+import com.project.domain.usagerecord.dto.response.RealtimeUsageByMemberResponse;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PollingService {
@@ -19,46 +24,45 @@ public class PollingService {
     private static final long HEARTBEAT_DELAY_MS = 25_000L;
 
     private final EmitterRegistry emitterRegistry;
-    private final FamilyCacheRepository familyCacheRepository;
-    private final ConcurrentHashMap<Long, Long> lastSeen = new ConcurrentHashMap<>();
-    private final SsePublisher ssePublisher;
+    private final FamilyRepository familyRepository;
+    private final CustomerQuotaRepository customerQuotaRepository;
 
-    // 1) 활성 familyId를 순회하며 최신 잔여 용량을 조회합니다.
-    // 2) 이전 값과 다를 때만 페이로드를 생성해 SSE로 전송합니다.
+    private final ConcurrentHashMap<Long, Long> lastSeenUsedBytes = new ConcurrentHashMap<>();
+
+    // 1) 활성 familyId를 순회하며 DB에서 최신 사용량을 조회합니다.
+    // 2) 이전 값과 다를 때만 SSE로 전송합니다.
     @Scheduled(fixedDelay = 1000)
     public void pollAndPushIfChanged() {
         for (Long familyId : emitterRegistry.activeFamilyIds()) {
-            Optional<Long> latestOpt = familyCacheRepository.findFamilyRemainingBytes(familyId);
-            if (latestOpt.isEmpty()) {
-                lastSeen.remove(familyId);
+            Family family = familyRepository.findById(familyId).orElse(null);
+            if (family == null) {
+                lastSeenUsedBytes.remove(familyId);
                 continue;
             }
 
-            long remainingBytes = latestOpt.get();
-            Long prev = lastSeen.putIfAbsent(familyId, remainingBytes);
+            long usedBytes = family.getUsedBytes();
+            Long prev = lastSeenUsedBytes.putIfAbsent(familyId, usedBytes);
 
-            if (prev == null || prev.longValue() != remainingBytes) {
-                lastSeen.put(familyId, remainingBytes);
+            if (prev == null || prev.longValue() != usedBytes) {
+                lastSeenUsedBytes.put(familyId, usedBytes);
 
-                // 임시로 고정
-                long totalLimitBytes = 20000;
-                long totalUsedBytes = totalLimitBytes - remainingBytes;
+                long totalQuotaBytes = family.getTotalQuotaBytes();
+                long remainingBytes = totalQuotaBytes - usedBytes;
 
-                UsageRealtimePayload payload =
-                        new UsageRealtimePayload(
-                                familyId,
-                                4L,
-                                totalUsedBytes,
-                                totalLimitBytes,
-                                remainingBytes,
-                                30.0,
-                                null,
-                                null,
-                                null);
+                RealtimeTotalUsageResponse totalResponse =
+                        new RealtimeTotalUsageResponse(
+                                familyId, usedBytes, totalQuotaBytes, remainingBytes);
+                emitterRegistry.send(familyId, "usage-updated", totalResponse);
 
-                LocalDateTime now = LocalDateTime.now();
-                ssePublisher.pushTotalUsageBytes(payload, now);
-                ssePublisher.pushMemberUsageBytes(payload, now);
+                List<CustomerQuota> quotas = customerQuotaRepository.findByFamilyId(familyId);
+                for (CustomerQuota quota : quotas) {
+                    RealtimeUsageByMemberResponse memberResponse =
+                            new RealtimeUsageByMemberResponse(
+                                    familyId,
+                                    quota.getCustomerId(),
+                                    quota.getMonthlyUsedBytes());
+                    emitterRegistry.send(familyId, "usage-updated-by-member", memberResponse);
+                }
             }
         }
     }
