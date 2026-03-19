@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
@@ -26,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PollingService {
 
+    private static final long POLLING_DELAY_MS = 1_000L;
     private static final long HEARTBEAT_DELAY_MS = 25_000L;
     private static final String EVENT_USAGE_UPDATED = "usage-updated";
     private static final String EVENT_USAGE_UPDATED_BY_MEMBER = "usage-updated-by-member";
@@ -38,7 +40,8 @@ public class PollingService {
 
     // 1) 활성 familyId 전체를 일괄 조회하여 N+1 문제를 방지합니다.
     // 2) 이전 값과 다른 family만 필터링하여 SSE로 전송합니다.
-    @Scheduled(fixedDelay = 1000)
+    @Transactional(readOnly = true)
+    @Scheduled(fixedDelay = POLLING_DELAY_MS)
     public void pollAndPushIfChanged() {
         Set<Long> activeFamilyIds = emitterRegistry.activeFamilyIds();
         if (activeFamilyIds.isEmpty()) {
@@ -87,9 +90,7 @@ public class PollingService {
             for (CustomerQuota quota : quotas) {
                 RealtimeUsageByMemberResponse memberResponse =
                         new RealtimeUsageByMemberResponse(
-                                familyId,
-                                quota.getCustomerId(),
-                                quota.getMonthlyUsedBytes());
+                                familyId, quota.getCustomerId(), quota.getMonthlyUsedBytes());
                 emitterRegistry.send(familyId, EVENT_USAGE_UPDATED_BY_MEMBER, memberResponse);
             }
         }
