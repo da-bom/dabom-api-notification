@@ -1,5 +1,6 @@
 package com.project.domain.usagerecord.infra.sse;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -14,8 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
-import com.project.domain.family.entity.Family;
-import com.project.domain.family.repository.FamilyRepository;
+import com.project.domain.family.entity.FamilyQuota;
+import com.project.domain.family.repository.FamilyQuotaRepository;
 import com.project.domain.usagerecord.dto.response.RealtimeTotalUsageResponse;
 import com.project.domain.usagerecord.dto.response.RealtimeUsageByMemberResponse;
 
@@ -33,7 +34,7 @@ public class PollingService {
     private static final String EVENT_USAGE_UPDATED_BY_MEMBER = "usage-updated-by-member";
 
     private final EmitterRegistry emitterRegistry;
-    private final FamilyRepository familyRepository;
+    private final FamilyQuotaRepository familyQuotaRepository;
     private final CustomerQuotaRepository customerQuotaRepository;
 
     private final ConcurrentHashMap<Long, Long> lastSeenUsedBytes = new ConcurrentHashMap<>();
@@ -48,26 +49,29 @@ public class PollingService {
             return;
         }
 
-        Map<Long, Family> familiesById =
-                familyRepository.findAllById(activeFamilyIds).stream()
-                        .collect(Collectors.toMap(Family::getId, Function.identity()));
+        LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);
+        Map<Long, FamilyQuota> quotasByFamilyId =
+                familyQuotaRepository
+                        .findByFamilyIdInAndCurrentMonth(activeFamilyIds, currentMonth)
+                        .stream()
+                        .collect(Collectors.toMap(FamilyQuota::getFamilyId, Function.identity()));
 
         List<Long> changedFamilyIds = new ArrayList<>();
         for (Long familyId : activeFamilyIds) {
-            Family family = familiesById.get(familyId);
-            if (family == null) {
+            FamilyQuota quota = quotasByFamilyId.get(familyId);
+            if (quota == null) {
                 lastSeenUsedBytes.remove(familyId);
                 continue;
             }
 
-            long usedBytes = family.getUsedBytes();
+            long usedBytes = quota.getUsedBytes();
             Long prev = lastSeenUsedBytes.get(familyId);
 
             if (prev == null || prev.longValue() != usedBytes) {
                 lastSeenUsedBytes.put(familyId, usedBytes);
                 changedFamilyIds.add(familyId);
 
-                long totalQuotaBytes = family.getTotalQuotaBytes();
+                long totalQuotaBytes = quota.getTotalQuotaBytes();
                 long remainingBytes = totalQuotaBytes - usedBytes;
 
                 RealtimeTotalUsageResponse totalResponse =
@@ -81,16 +85,19 @@ public class PollingService {
             return;
         }
 
-        Map<Long, List<CustomerQuota>> quotasByFamilyId =
+        Map<Long, List<CustomerQuota>> customerQuotasByFamilyId =
                 customerQuotaRepository.findByFamilyIdIn(changedFamilyIds).stream()
                         .collect(Collectors.groupingBy(CustomerQuota::getFamilyId));
 
         for (Long familyId : changedFamilyIds) {
-            List<CustomerQuota> quotas = quotasByFamilyId.getOrDefault(familyId, List.of());
-            for (CustomerQuota quota : quotas) {
+            List<CustomerQuota> customerQuotas =
+                    customerQuotasByFamilyId.getOrDefault(familyId, List.of());
+            for (CustomerQuota customerQuota : customerQuotas) {
                 RealtimeUsageByMemberResponse memberResponse =
                         new RealtimeUsageByMemberResponse(
-                                familyId, quota.getCustomerId(), quota.getMonthlyUsedBytes());
+                                familyId,
+                                customerQuota.getCustomerId(),
+                                customerQuota.getMonthlyUsedBytes());
                 emitterRegistry.send(familyId, EVENT_USAGE_UPDATED_BY_MEMBER, memberResponse);
             }
         }

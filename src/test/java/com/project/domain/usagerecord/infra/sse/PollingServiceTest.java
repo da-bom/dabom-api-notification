@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -18,8 +19,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.project.domain.customer.entity.CustomerQuota;
 import com.project.domain.customer.repository.CustomerQuotaRepository;
-import com.project.domain.family.entity.Family;
-import com.project.domain.family.repository.FamilyRepository;
+import com.project.domain.family.entity.FamilyQuota;
+import com.project.domain.family.repository.FamilyQuotaRepository;
 import com.project.domain.usagerecord.dto.response.RealtimeTotalUsageResponse;
 import com.project.domain.usagerecord.dto.response.RealtimeUsageByMemberResponse;
 
@@ -28,11 +29,13 @@ class PollingServiceTest {
 
     @Mock private EmitterRegistry emitterRegistry;
 
-    @Mock private FamilyRepository familyRepository;
+    @Mock private FamilyQuotaRepository familyQuotaRepository;
 
     @Mock private CustomerQuotaRepository customerQuotaRepository;
 
     @InjectMocks private PollingService pollingService;
+
+    private static final LocalDate CURRENT_MONTH = LocalDate.now().withDayOfMonth(1);
 
     @Test
     @DisplayName("sendHeartbeat() 메서드에 대한 단위테스트입니다.")
@@ -49,15 +52,14 @@ class PollingServiceTest {
     void pollAndPushIfChanged_sendsEvents_whenUsageChanged() {
         // given
         Long familyId = 1L;
-        Family family =
-                Family.builder()
-                        .id(familyId)
-                        .name("test")
-                        .createdById(1L)
+        FamilyQuota familyQuota =
+                FamilyQuota.builder()
+                        .familyId(familyId)
+                        .currentMonth(CURRENT_MONTH)
                         .totalQuotaBytes(10000L)
                         .usedBytes(3000L)
                         .build();
-        CustomerQuota quota =
+        CustomerQuota customerQuota =
                 CustomerQuota.builder()
                         .customerId(10L)
                         .familyId(familyId)
@@ -65,9 +67,10 @@ class PollingServiceTest {
                         .build();
 
         when(emitterRegistry.activeFamilyIds()).thenReturn(Set.of(familyId));
-        when(familyRepository.findAllById(Set.of(familyId))).thenReturn(List.of(family));
+        when(familyQuotaRepository.findByFamilyIdInAndCurrentMonth(Set.of(familyId), CURRENT_MONTH))
+                .thenReturn(List.of(familyQuota));
         when(customerQuotaRepository.findByFamilyIdIn(List.of(familyId)))
-                .thenReturn(List.of(quota));
+                .thenReturn(List.of(customerQuota));
 
         // when
         pollingService.pollAndPushIfChanged();
@@ -90,17 +93,17 @@ class PollingServiceTest {
     void pollAndPushIfChanged_doesNotSendEvents_whenUsageUnchanged() {
         // given
         Long familyId = 1L;
-        Family family =
-                Family.builder()
-                        .id(familyId)
-                        .name("test")
-                        .createdById(1L)
+        FamilyQuota familyQuota =
+                FamilyQuota.builder()
+                        .familyId(familyId)
+                        .currentMonth(CURRENT_MONTH)
                         .totalQuotaBytes(10000L)
                         .usedBytes(3000L)
                         .build();
 
         when(emitterRegistry.activeFamilyIds()).thenReturn(Set.of(familyId));
-        when(familyRepository.findAllById(Set.of(familyId))).thenReturn(List.of(family));
+        when(familyQuotaRepository.findByFamilyIdInAndCurrentMonth(Set.of(familyId), CURRENT_MONTH))
+                .thenReturn(List.of(familyQuota));
         when(customerQuotaRepository.findByFamilyIdIn(List.of(familyId))).thenReturn(List.of());
 
         // 첫 호출: 초기값 설정
@@ -115,13 +118,14 @@ class PollingServiceTest {
     }
 
     @Test
-    @DisplayName("familyId에 해당하는 Family가 없으면 이벤트를 전송하지 않습니다.")
-    void pollAndPushIfChanged_doesNotSendEvents_whenFamilyNotFound() {
+    @DisplayName("familyId에 해당하는 FamilyQuota가 없으면 이벤트를 전송하지 않습니다.")
+    void pollAndPushIfChanged_doesNotSendEvents_whenFamilyQuotaNotFound() {
         // given
         Long familyId = 999L;
 
         when(emitterRegistry.activeFamilyIds()).thenReturn(Set.of(familyId));
-        when(familyRepository.findAllById(Set.of(familyId))).thenReturn(List.of());
+        when(familyQuotaRepository.findByFamilyIdInAndCurrentMonth(Set.of(familyId), CURRENT_MONTH))
+                .thenReturn(List.of());
 
         // when
         pollingService.pollAndPushIfChanged();
