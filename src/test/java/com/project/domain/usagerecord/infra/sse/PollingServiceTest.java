@@ -75,14 +75,14 @@ class PollingServiceTest {
         // then
         verify(emitterRegistry)
                 .send(
-                        eq(familyId),
-                        eq("usage-updated"),
-                        eq(new RealtimeTotalUsageResponse(familyId, 3000L, 10000L, 7000L)));
+                        familyId,
+                        "usage-updated",
+                        new RealtimeTotalUsageResponse(familyId, 3000L, 10000L, 7000L));
         verify(emitterRegistry)
                 .send(
-                        eq(familyId),
-                        eq("usage-updated-by-member"),
-                        eq(new RealtimeUsageByMemberResponse(familyId, 10L, 3000L)));
+                        familyId,
+                        "usage-updated-by-member",
+                        new RealtimeUsageByMemberResponse(familyId, 10L, 3000L));
     }
 
     @Test
